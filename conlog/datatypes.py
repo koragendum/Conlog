@@ -9,8 +9,8 @@ class Operation:
 
 @dataclass(frozen=True)
 class Initial(Operation):
-    free: list[str]
-    fixed: list[tuple[str, int]]
+    free: tuple[str, ...]
+    fixed: tuple[tuple[str, int], ...]
 
 
 @dataclass(frozen=True)
@@ -43,8 +43,8 @@ class Node:
 
 @dataclass(frozen=True)
 class Graph:
-    nodes: list[Node]
-    edges: list[tuple[Node, Node]]
+    nodes: tuple[Node, ...]
+    edges: tuple[tuple[Node, Node], ...]
 
     _adjacency: dict[Node, list[Node]] = field(
         default_factory=lambda: defaultdict(list), init=False
