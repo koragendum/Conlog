@@ -1,7 +1,7 @@
 import networkx as nx
 
 
-def make_directed(g: nx.Graph) -> nx.DiGraph:
+def make_uturnless(g: nx.Graph) -> nx.DiGraph:
     """Create a directed copy of a graph where u-turns are not legal."""
 
     nodes = list(g.edges)
