@@ -9,8 +9,8 @@ class Operation:
 
 @dataclass(frozen=True)
 class Initial(Operation):
-    free: tuple[str]
-    fixed: tuple[tuple[str, int]]
+    free: list[str]
+    fixed: list[tuple[str, int]]
 
 
 @dataclass(frozen=True)
@@ -22,7 +22,7 @@ class Terminal(Operation):
 class Addition(Operation):
     lhs: str
     rhs: str | int
-    
+
 
 @dataclass(frozen=True)
 class Print(Operation):
@@ -51,10 +51,17 @@ class Graph:
     )
 
     def __post_init__(self):
+        # Verify names are unique
+        names = set()
+        for u in self.nodes:
+            if u.name in names:
+                raise ValueError(f"Duplicate name {u.name}")
+
+            names.add(u.name)
+
         for u, v in self.edges:
             self._adjacency[u].append(v)
             self._adjacency[v].append(u)
 
     def neighbors(self, u: Node) -> list[Node]:
         yield from self._adjacency[u]
-
