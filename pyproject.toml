@@ -1,0 +1,11 @@
+[tool.pyright]
+
+verboseOutput = true
+reportMissingImports = true
+pythonVersion = "3.10"
+
+[tool.black]
+
+[tool.isort]
+profile = "black"
+known_first_party = ["problems"]
