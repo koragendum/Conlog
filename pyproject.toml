@@ -4,6 +4,12 @@ verboseOutput = true
 reportMissingImports = true
 pythonVersion = "3.10"
 
+[tool.poetry]
+name = "conlog"
+version = "0.0.0.alpha0"
+description = "Conlog: SMT (Satisfying Maze Traversal) Solver"
+authors = []
+
 [tool.black]
 
 [tool.isort]
