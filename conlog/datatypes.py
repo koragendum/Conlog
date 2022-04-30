@@ -44,6 +44,13 @@ class Node:
     op: Operation | None
 
 
+@dataclass(frozen=True)
+class Solution:
+    path: list[Node]
+    assignment: dict[str, int]
+    stdout: list[str]
+
+
 def make_graph(edges: Iterable[tuple[Node, Node]]) -> nx.Graph:
     g = nx.Graph()
     g.add_edges_from(edges)
