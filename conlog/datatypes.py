@@ -37,6 +37,7 @@ class Subtraction(Operation):
 
 @dataclass(frozen=True)
 class Node:
+    name: str
     op: Operation | None
 
 

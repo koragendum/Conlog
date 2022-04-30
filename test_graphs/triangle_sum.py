@@ -10,14 +10,15 @@ depending on the first path taken. (no one-way gadget used)
        '--DecrX----SubFbyX--'
 
 """
-either_trisum_d = {
-    'initial': Node(Initial(free=('T',), fixed=(('n', '4'),))),
-    'decr_x': Node(Subtraction('n', '1')),
-    'sub_t_x': Node(Subtraction('T', 'n')),
-    'none': Node(None),
-    'decr_t': Node(Subtraction('T', '1')),
-    'terminal': Node(Terminal()),
-}
+either_trisum_nodes = [
+    Node('initial', Initial(free=('T',), fixed=(('n', '4'),))),
+    Node('decr_x', Subtraction('n', '1')),
+    Node('sub_t_x', Subtraction('T', 'n')),
+    Node('none', None),
+    Node('decr_t', Subtraction('T', '1')),
+    Node('terminal', Terminal()),
+]
+either_trisum_d = {n.name: n for n in either_trisum_nodes}
 
 either_trisum_graph = Graph(
     nodes=list(either_trisum_d.values()),
