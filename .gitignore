@@ -1,2 +1,5 @@
 __pycache__/
 *.py[cod]
+
+# Emacs
+.dir-locals-2.el
