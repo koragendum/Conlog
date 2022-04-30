@@ -27,7 +27,9 @@ def evaluate(path: list[Node], assignment: dict[str, int]) -> Solution | None:
     for node in path[1:]:
         match node.op:
             case Initial():
-                raise ValueError(f"Initial node found in path: {node}")
+                pass
+            case None:
+                pass
             case Print(var=var):
                 prints.append(str(var_values[var]))
             case Addition(lhs=lhs, rhs=rhs):
@@ -45,8 +47,6 @@ def evaluate(path: list[Node], assignment: dict[str, int]) -> Solution | None:
                     if x != 0:
                         return None
                 found_terminal = True
-            case None:
-                pass
             case _:
                 raise ValueError(f"Unknown operation: {node.op}")
 
