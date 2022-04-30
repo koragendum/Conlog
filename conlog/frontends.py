@@ -226,10 +226,10 @@ class TextProgram:
         if not (seq[5].kind == 'symbol' and seq[5].value == ']'):
             return FrontendError("expected a closing bracket", seq[5])
 
-        if seq[2].value in self.nodes:
+        if seq[2].value in self.nodes or seq[2].value == node_name:
             return FrontendError("label refers to an existing node", seq[2])
 
-        if seq[4].kind == 'name' and seq[4].value in self.nodes:
+        if seq[4].kind == 'name' and (seq[4].value in self.nodes or seq[4].value == node_name):
             return FrontendError("label refers to an existing node", seq[4])
 
         if node_name in self.nodes and self.nodes[node_name] is not None:
