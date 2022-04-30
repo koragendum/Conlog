@@ -10,6 +10,13 @@ version = "0.0.0.alpha0"
 description = "Conlog: SMT (Satisfying Maze Traversal) Solver"
 authors = []
 
+[tool.poetry.dependencies]
+python = ">=3.10,<3.11"
+networkx = "*"
+
+[tool.poetry.dev-dependencies]
+pytest = ">=5,<6"
+
 [tool.black]
 
 [tool.isort]

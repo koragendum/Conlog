@@ -1,15 +1,12 @@
 from conlog.datatypes import (
     Addition,
-    Graph,
     Initial,
     Node,
-    Operation,
-    Print,
     Subtraction,
     Terminal,
 )
 from dataclasses import dataclass
-
+import networkx as nx
 
 @dataclass(frozen=True)
 class SearchState():
@@ -35,7 +32,7 @@ def compute_new_values_from_node_function(node, values, reverse=True):
     return new_values
 
 
-def solve_graph_bfs(graph: Graph):
+def solve_graph_bfs(graph: nx.Graph):
     # Get key nodes and variables
     initial_node = next(node for node in graph.nodes if isinstance(node.op, Initial))
     terminal_node = next(node for node in graph.nodes if isinstance(node.op, Terminal))

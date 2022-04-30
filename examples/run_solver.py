@@ -1,3 +1,11 @@
+from conlog.solver_astar import solve_graph_bfs
+from conlog.datatypes import (
+    make_graph,
+    Initial,
+    Node,
+    Subtraction,
+    Terminal,
+)
 
 
 if __name__ == '__main__':
@@ -19,8 +27,7 @@ if __name__ == '__main__':
     ]
     either_trisum_d = {n.name: n for n in either_trisum_nodes}
 
-    either_trisum_graph = Graph(
-        nodes=tuple(either_trisum_d.values()),
+    either_trisum_graph = make_graph(
         edges=(
             (either_trisum_d["initial"], either_trisum_d["decr_x"]),
             (either_trisum_d["decr_x"], either_trisum_d["sub_t_x"]),
