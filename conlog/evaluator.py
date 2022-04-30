@@ -35,7 +35,6 @@ def evaluate(path: list[Node], assignment: dict[str, int]) -> Solution | None:
                     var_values[lhs] += rhs
                 else:
                     var_values[lhs] += var_values[rhs]
-
             case Subtraction(lhs=lhs, rhs=rhs):
                 if isinstance(rhs, int):
                     var_values[lhs] -= rhs
@@ -46,6 +45,8 @@ def evaluate(path: list[Node], assignment: dict[str, int]) -> Solution | None:
                     if x != 0:
                         return None
                 found_terminal = True
+            case None:
+                pass
             case _:
                 raise ValueError(f"Unknown operation: {node.op}")
 
