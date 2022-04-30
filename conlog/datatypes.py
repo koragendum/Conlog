@@ -9,8 +9,8 @@ class Operation:
 
 @dataclass(frozen=True)
 class Initial(Operation):
-    free: list[str]
-    fixed: dict[str, int]
+    free: tuple[str]
+    fixed: tuple[tuple[str, int]]
 
 
 @dataclass(frozen=True)
