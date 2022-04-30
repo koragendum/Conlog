@@ -19,7 +19,7 @@ COMMENT  = '//'
 GRP_SEPR = '\''
 SYMBOLS  = [';', '[', ']', '=', '?', '+=', '-=', '--']
 
-ws_regex   = re.compile(r"[ \n\r]")
+ws_regex   = re.compile(r"[ \n\r]+")
 name_regex = re.compile(r"[a-zA-Z][a-zA-Z0-9]*'?")
 num_regex  = re.compile(r"\d+("+re.escape(GRP_SEPR)+r"\d+)*")
 char_regex = re.compile(r"'.")
