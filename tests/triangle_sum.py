@@ -1,14 +1,15 @@
+import networkx as nx
+
 from conlog.datatypes import (
     Addition,
-    Graph,
     Initial,
     Node,
     Operation,
     Print,
     Subtraction,
     Terminal,
+    make_graph,
 )
-
 
 """
 Graph that computes either T=triangle_sum(x) or T=triangle_sum(x-1)
@@ -28,13 +29,12 @@ either_trisum_nodes = [
 ]
 either_trisum_d = {n.name: n for n in either_trisum_nodes}
 
-either_trisum_graph = Graph(
-    nodes=tuple(either_trisum_d.values()),
-    edges=(
+either_trisum_graph = make_graph(
+    edges=[
         (either_trisum_d["initial"], either_trisum_d["decr_x"]),
         (either_trisum_d["decr_x"], either_trisum_d["sub_t_x"]),
         (either_trisum_d["sub_t_x"], either_trisum_d["none"]),
         (either_trisum_d["none"], either_trisum_d["initial"]),
         (either_trisum_d["none"], either_trisum_d["terminal"]),
-    ),
+    ],
 )

@@ -1,5 +1,8 @@
 from collections import defaultdict
 from dataclasses import dataclass, field
+from typing import Iterable
+
+import networkx as nx
 
 
 @dataclass(frozen=True)
@@ -41,47 +44,8 @@ class Node:
     op: Operation | None
 
 
-@dataclass(frozen=True)
-class Graph:
-    nodes: tuple[Node, ...]
-    edges: tuple[tuple[Node, Node], ...]
+def make_graph(edges: Iterable[tuple[Node, Node]]) -> nx.Graph:
+    g = nx.Graph()
+    g.add_edges_from(edges)
 
-    _adjacency: dict[Node, list[Node]] = field(
-        default_factory=lambda: defaultdict(list), init=False, compare=False
-    )
-
-    def __post_init__(self):
-        # Verify names are unique
-        names = set()
-        for u in self.nodes:
-            if u.name in names:
-                raise ValueError(f"Duplicate name {u.name}")
-
-            names.add(u.name)
-
-        for u, v in self.edges:
-            self._adjacency[u].append(v)
-            self._adjacency[v].append(u)
-
-    def has_edge(self, u: Node, v: Node) -> bool:
-        return u in self.neighbors(v)
-
-    def neighbors(self, u: Node) -> list[Node]:
-        yield from self._adjacency[u]
-
-
-def dfs(g: Graph, s: Node) -> Graph:
-    edges = []
-
-    stack = [s]
-    seen = {s}
-    while stack:
-        u = stack.pop()
-
-        for v in g.neighbors(u):
-            if v not in seen:
-                seen.add(v)
-                edges.append((u, v))
-                stack.append(v)
-
-    return Graph(nodes=tuple(seen), edges=tuple(edges))
+    return g

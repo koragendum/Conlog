@@ -11,6 +11,8 @@ let
     pytest
     hypothesis
     line_profiler
+    networkx
+    matplotlib
   ];
   python-with-my-packages = pkgs.python310.withPackages my-python-packages;
 in
