@@ -9,42 +9,14 @@ AUTO_SEMICOLON = True
 #~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
 # Read from file
 
-#~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
-# Interactive prompt
-
-def prompt():
-    print("\x1B[2mconlog:\x1B[22m", end=' ')
-    try:
-        line = input()
-    except KeyboardInterrupt:
-        print()
-        exit()
-    except EOFError:
-        print('^D')
-        exit()
-    if line in ['exit', 'quit', ':q']:
-        exit()
-    if AUTO_SEMICOLON:
-        stripped = line.rstrip()
-        if len(stripped) > 0 and stripped[-1] != ';':
-            line += ';'
-    return line + '\n'
-
-stream = TokenStream("", prompt)
-program = TextProgram()
-strategy = 'g'
-limit = 65536
-
-
 ap = argparse.ArgumentParser()
 ap.add_argument('input_file', metavar='FILE', nargs='?', default=None, help='A graph file to parse and execute')
 args = ap.parse_args()
 
-
 if args.input_file is not None:
     grid_file_name = args.input_file
 
-    if grid_file_name[-4:] != '.clg':
+    if grid_file_name[-4:] not in ('.cl', '.cla', '.clg'):
         print('Warning! Not a .clg file: %s' % grid_file_name)
 
     grid_text = open(grid_file_name, 'r').read()
@@ -78,6 +50,31 @@ if args.input_file is not None:
 
     exit(0)
 
+#~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+# Interactive prompt
+
+def prompt():
+    print("\x1B[2mconlog:\x1B[22m", end=' ')
+    try:
+        line = input()
+    except KeyboardInterrupt:
+        print()
+        exit()
+    except EOFError:
+        print('^D')
+        exit()
+    if line in ['exit', 'quit', ':q']:
+        exit()
+    if AUTO_SEMICOLON:
+        stripped = line.rstrip()
+        if len(stripped) > 0 and stripped[-1] != ';':
+            line += ';'
+    return line + '\n'
+
+stream = TokenStream("", prompt)
+program = TextProgram()
+strategy = 'g'
+limit = 65536
 
 while True:
     seq = stream.readline()

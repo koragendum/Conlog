@@ -687,8 +687,37 @@ class GridProgram(Program):
         if match is None:
             return GridError("expected variable name at start of label", row, column)
 
-        lhs = match.group()
+        first_token = match.group()
         text = text[match.end():].lstrip()
+
+        # Print nodes
+        if first_token.lower() in ('intpr', 'unipr'):
+            op = first_token.lower()
+            if text[0] != '=':
+                return GridError(f"expected '=' after '{op}'", row, column)
+            text = text[1:].lstrip()
+            if (match := name_regex.match(text)) is not None:
+                lhs = match.group()
+            elif (match := num_regex.match(text)) is not None:
+                lhs = int(match.group().replace(GRP_SEPR, ''))
+            elif (match := char_regex.match(text)) is not None:
+                lhs = ord(match.group()[1:])
+            else:
+                return GridError("expected literal or variable name", row, column)
+
+            text = text[match.end():]
+            if len(text) > 0:
+                return GridError("extraneous characters at end of label", row, column)
+
+            if isinstance(lhs, str):
+                if lhs not in self.variables:
+                    self.variables[lhs] = None
+
+            self.nodes[node_name] = (lhs, op, None)
+            return
+
+        # Non-print nodes
+        lhs = first_token
 
         if (prefix := text[:3]) in OPERATORS \
         or (prefix := text[:2]) in OPERATORS \
@@ -809,10 +838,3 @@ def make_grid_program(grid):
         program.edges.add(canonical)
 
     return program
-
-
-"""
-TODO
-- print nodes
-- load from file
-"""
