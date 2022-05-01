@@ -34,7 +34,8 @@ def find_initial(g: nx.Graph) -> Initial:
 
 
 def determine_monotone_variables(
-    g: nx.Graph, initial: Initial,
+    g: nx.Graph,
+    initial: Initial,
     nonnegative: set[str] | None = None,
     nonpositive: set[str] | None = None,
 ) -> tuple[set[str], set[str]]:
@@ -51,16 +52,32 @@ def determine_monotone_variables(
     for node in g.nodes:
         match node.op:
             case Addition(lhs=lhs, rhs=rhs):
-                if isinstance(rhs, int) and rhs >= 0 or (isinstance(rhs, str) and rhs in nonnegative):
+                if (
+                    isinstance(rhs, int)
+                    and rhs >= 0
+                    or (isinstance(rhs, str) and rhs in nonnegative)
+                ):
                     increments.add(lhs)
-                elif isinstance(rhs, int) and rhs <= 0 or (isinstance(rhs, str) and rhs in nonpositive):
+                elif (
+                    isinstance(rhs, int)
+                    and rhs <= 0
+                    or (isinstance(rhs, str) and rhs in nonpositive)
+                ):
                     decrements.add(lhs)
                 else:
                     non_monotonic.add(lhs)
             case Subtraction(lhs=lhs, rhs=rhs):
-                if isinstance(rhs, int) and rhs >= 0 or (isinstance(rhs, str) and rhs in nonnegative):
+                if (
+                    isinstance(rhs, int)
+                    and rhs >= 0
+                    or (isinstance(rhs, str) and rhs in nonnegative)
+                ):
                     decrements.add(lhs)
-                elif isinstance(rhs, int) and rhs <= 0 or (isinstance(rhs, str) and rhs in nonpositive):
+                elif (
+                    isinstance(rhs, int)
+                    and rhs <= 0
+                    or (isinstance(rhs, str) and rhs in nonpositive)
+                ):
                     increments.add(lhs)
                 else:
                     non_monotonic.add(lhs)
@@ -139,7 +156,7 @@ def bounds_violated(
     return False
 
 
-def interpret(g: nx.Graph) -> Iterator[Solution]:
+def interpret(g: nx.Graph, limit: int | None = None) -> Iterator[Solution]:
     initial = find_initial(g)
     dg = make_uturnless(g)
 
@@ -148,6 +165,7 @@ def interpret(g: nx.Graph) -> Iterator[Solution]:
     for edge in find_initial_edges(dg):
         queue.append([edge])
 
+    count = 0
     while queue:
         history = queue.popleft()
         u, v = history[-1]
@@ -191,14 +209,21 @@ def interpret(g: nx.Graph) -> Iterator[Solution]:
             new_history.append(node)
             queue.append(new_history)
 
+        # Enforce search limits
+        count += 1
+        if limit is not None and count > limit:
+            break
 
-def get_bounds_from_monotonicity(g: nx.Graph, increasing: set[str], decreasing: set[str]) -> dict[str, tuple[int | float, int | float]]:
+
+def get_bounds_from_monotonicity(
+    g: nx.Graph, increasing: set[str], decreasing: set[str]
+) -> dict[str, tuple[int | float, int | float]]:
     initial = find_initial(g)
     free, fixed = set(initial.free), dict(initial.fixed)
 
     # Given some variables are monotonic, bound them.
     boundable_vars = increasing | decreasing
-    bounds = {var: [float('-inf'), float('inf')] for var in boundable_vars}
+    bounds = {var: [float("-inf"), float("inf")] for var in boundable_vars}
     for var in boundable_vars:
         if var in increasing:
             bounds[var][1] = min(bounds[var][1], 0)
@@ -211,7 +236,10 @@ def get_bounds_from_monotonicity(g: nx.Graph, increasing: set[str], decreasing: 
 
     return bounds
 
-def determine_variable_bounds_multipass(g: nx.Graph) -> dict[str, tuple[int | float, int | float]]:
+
+def determine_variable_bounds_multipass(
+    g: nx.Graph,
+) -> dict[str, tuple[int | float, int | float]]:
     initial = find_initial(g)
     free, fixed = set(initial.free), dict(initial.fixed)
 
@@ -220,7 +248,9 @@ def determine_variable_bounds_multipass(g: nx.Graph) -> dict[str, tuple[int | fl
     nonpositive = set()
     nonnegative = set()
     for _ in range(len(free) + len(fixed)):
-        increasing, decreasing = determine_monotone_variables(g, initial, nonnegative=nonnegative, nonpositive=nonpositive)
+        increasing, decreasing = determine_monotone_variables(
+            g, initial, nonnegative=nonnegative, nonpositive=nonpositive
+        )
 
         bounds = get_bounds_from_monotonicity(g, increasing, decreasing)
 
