@@ -20,7 +20,7 @@ parser.add_argument('--plot',                         action='store_true', defau
 args = parser.parse_args()
 
 strategy = args.strategy
-limit = 65536 if args.limit is None else args.limit
+limit = 1000000 if args.limit is None else args.limit
 
 if (filename := args.inp) is not None:
 
