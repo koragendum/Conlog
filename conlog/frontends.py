@@ -1,9 +1,21 @@
 import re
+import networkx
+from conlog.datatypes import (
+    Initial,
+    Terminal,
+    Addition,
+    Subtraction,
+    ConditionalIncrement,
+    Node,
+)
+
+DISALLOW_SELF_MUTATION = True
 
 #~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
 # Text frontend (similar to DOT)
 #
 #   node = node-name ("[" var-name ("+=" | "-=") (var-name | const) "]")?
+#        | node-name "[" "print" "]"
 #
 #   statement = var-name "=" (const | "?")
 #             | node ("--" node)+
@@ -15,13 +27,14 @@ import re
 #
 #   There are two special node names: "initial" and "final".
 
-COMMENT  = '//'
-GRP_SEPR = '\''
-SYMBOLS  = [';', '[', ']', '=', '?', '+=', '-=', '--']
+COMMENT   = '//'
+GRP_SEPR  = '\''
+OPERATORS = ['+=', '-=', '++?']
+SYMBOLS   = [';', '[', ']', '=', '?', '--'] + OPERATORS
 
 ws_regex   = re.compile(r"[ \n\r]+")
 name_regex = re.compile(r"[a-zA-Z][a-zA-Z0-9]*'?")
-num_regex  = re.compile(r"\d+("+re.escape(GRP_SEPR)+r"\d+)*")
+num_regex  = re.compile(r"[+-]?\d+("+re.escape(GRP_SEPR)+r"\d+)*")
 char_regex = re.compile(r"'.")
 
 # The token kinds are "numeric", "character", "symbol", and "name".
@@ -150,7 +163,9 @@ class TokenStream:
             tok_line, tok_column = self.line, self.column
 
             # Is this a symbol?
-            if (prefix := self.text[:2]) in SYMBOLS or (prefix := self.text[:1]) in SYMBOLS:
+            if (prefix := self.text[:3]) in SYMBOLS \
+            or (prefix := self.text[:2]) in SYMBOLS \
+            or (prefix := self.text[:1]) in SYMBOLS:
                 self._advance(prefix)
                 self.text = self.text[len(prefix):]
                 return Token(prefix, prefix, 'symbol', tok_line, tok_column)
@@ -181,15 +196,63 @@ class TokenStream:
                 return Token(char_text, char_text[1:], 'character', tok_line, tok_column)
 
             err_tok = Token(self.text[0], None, None, tok_line, tok_column)
+            self._advance(self.text)
+            self.text = ""
             return FrontendError("unable to tokenize", [err_tok])
+
+    def readline(self):
+        buf = []
+        while True:
+            tok = next(self)
+            if isinstance(tok, FrontendError):
+                return tok
+            if tok is None:
+                return buf
+            if tok.kind == 'symbol' and tok.value == ';':
+                return buf
+            buf.append(tok)
 
 
 class TextProgram:
     def __init__(self):
-        self.unknown   = set()
         self.variables = dict() # name -> initial value
         self.nodes     = dict() # name -> operation
         self.edges     = set()  # (name, name)
+
+
+    def show(self, query=None):
+        if query is None:
+            names = sorted(set(self.variables.keys()) | set(self.nodes.keys()))
+        elif query == 'vars':
+            names = sorted(self.variables.keys())
+        elif query == 'nodes':
+            names = sorted(self.nodes.keys())
+        elif isinstance(query, (list, tuple)):
+            names = query
+        else:
+            names = [query]
+
+        for name in names:
+            if query != 'nodes' and name in self.variables:
+                status = self.variables[name]
+                if status is None:
+                    print(f"\x1B[95m{name}\x1B[39m uninitialized")
+                else:
+                    print(f"\x1B[95m{name}\x1B[39m = \x1B[95m{status}\x1B[39m")
+            if query != 'vars' and name in self.nodes:
+                operation = self.nodes[name]
+                if operation is None:
+                    print(f"\x1B[94m{name}\x1B[39m", end='')
+                else:
+                    lhs, op, rhs = operation
+                    desc = f"\x1B[95m{lhs}\x1B[39m{op}\x1B[95m{rhs}\x1B[39m"
+                    print(f"\x1B[94m{name}\x1B[39m [{desc}]", end='')
+                left_adjuncts  = [edge[0] for edge in self.edges if edge[1] == name]
+                right_adjuncts = [edge[1] for edge in self.edges if edge[0] == name]
+                adjuncts = sorted(left_adjuncts + right_adjuncts)
+                if len(adjuncts) > 0:
+                    print(' --', ', '.join(f"\x1B[94m{a}\x1B[39m" for a in adjuncts), end='')
+                print()
 
 
     def add_node(self, seq):
@@ -201,12 +264,8 @@ class TextProgram:
             return FrontendError("expected node name", seq[0])
 
         node_name = seq[0].value
-        if node_name in self.variables:
-            return FrontendError("variable with this name already exists", seq[0])
 
         if len(seq) == 1 or not (seq[1].kind == 'symbol' and seq[1].value == '['):
-            if node_name in self.unknown:
-                self.unknown.remove(node_name)
             if node_name not in self.nodes:
                 self.nodes[node_name] = None
             return (1, node_name)
@@ -214,37 +273,36 @@ class TextProgram:
         if len(seq) < 6:
             return FrontendError("incomplete node definition", seq)
 
+        if node_name in ('initial', 'final'):
+            return FrontendError("cannot define node operation for initial or final", seq[0])
+
         if seq[2].kind != 'name':
             return FrontendError("expected variable name", seq[2])
 
-        if not (seq[3].kind == 'symbol' and seq[3].value in ('+=', '-=')):
-            return FrontendError("expected increment or decrement", seq[3])
+        if not (seq[3].kind == 'symbol' and seq[3].value in OPERATORS):
+            return FrontendError("expected operator", seq[3])
 
         if seq[4].kind not in ('numeric', 'character', 'name'):
-            return FrontendError("expected literal or variable name", seq[5])
+            return FrontendError("expected literal or variable name", seq[4])
+
+        if seq[3].value == "++?" and seq[4].kind != 'name':
+            return FrontendError("expected variable name", seq[4])
 
         if not (seq[5].kind == 'symbol' and seq[5].value == ']'):
             return FrontendError("expected a closing bracket", seq[5])
 
-        if seq[2].value in self.nodes or seq[2].value == node_name:
-            return FrontendError("label refers to an existing node", seq[2])
-
-        if seq[4].kind == 'name' and (seq[4].value in self.nodes or seq[4].value == node_name):
-            return FrontendError("label refers to an existing node", seq[4])
-
         if node_name in self.nodes and self.nodes[node_name] is not None:
-            return FrontendError("node mutation has already been defined", seq[1:6])
+            return FrontendError("node operation has already been defined", seq[1:6])
+
+        if DISALLOW_SELF_MUTATION and seq[4].kind == 'name' and (seq[2].value == seq[4].value):
+            return FrontendError("variable automutation is forbidden", [seq[2], seq[4]])
 
         lhs = seq[2].value
-        if lhs in self.unknown:
-            self.unknown.remove(lhs)
         if lhs not in self.variables:
             self.variables[lhs] = None
 
         if seq[4].kind == 'name':
             rhs_name = seq[4].value
-            if rhs_name in self.unknown:
-                self.unknown.remove(seq[4].value)
             if rhs_name not in self.variables:
                 self.variables[rhs_name] = None
 
@@ -255,17 +313,12 @@ class TextProgram:
         else:
             rhs = seq[4].value
 
-        op = {'+=': 'inc', '-=': 'dec'}[seq[3].value]
-
-        if node_name in self.unknown:
-            self.unknown.remove(node_name)
-
+        op = seq[3].value
         self.nodes[node_name] = (lhs, op, rhs)
-
         return (6, node_name)
 
 
-    def add_statement(self, seq):
+    def add_statement(self, seq, allow_reinit=False) -> None:
         """
         Returns None or instance of FrontendError.
         seq -- nonempty list of Tokens
@@ -273,36 +326,29 @@ class TextProgram:
         if seq[0].kind != 'name':
             return FrontendError("statement must begin with a name", seq[0])
 
-        # Simple declaration
         name = seq[0].value
-        if len(seq) == 1:
-            if name not in self.variables and name not in self.nodes:
-                self.unknown.add(name)
-            return
+        if len(seq) < 3:
+            return FrontendError("incomplete statement", seq)
 
         # Variable initialization
         if seq[1].kind == 'symbol' and seq[1].value == '=':
             if len(seq) < 3:
                 return FrontendError("incomplete variable initialization", seq)
+            if len(seq) > 3:
+                return FrontendError("extraneous characters in variable intialization", seq[3:])
             is_literal = seq[2].kind in ('numeric', 'character')
             is_free    = seq[2].kind == 'symbol' and seq[2].value == '?'
             if not (is_literal or is_free):
                 return FrontendError("variable must be initialized to a constant or marked free", seq[2])
-            if len(seq) > 3:
-                return FrontendError("extraneous characters in variable intialization", seq[3:])
-            if name in self.nodes:
-                return FrontendError("node with this label already exists", seq[0])
-            if name in self.variables:
+            if not allow_reinit and name in self.variables:
                 if self.variables[name] is not None:
                     return FrontendError("variable has already been initialized", seq[0])
-            if name in self.unknown:
-                self.unknown.remove(name)
             if is_free:
-                self.variables[name] = None
+                self.variables[name] = 'free'
+            elif seq[2].kind == 'numeric':
+                self.variables[name] = seq[2].value
             elif seq[2].kind == 'character':
                 self.variables[name] = ord(seq[2].value)
-            else:
-                self.variables[name] = seq[2].value
             return
 
         # Node and edge declarations
@@ -328,49 +374,44 @@ class TextProgram:
                 return FrontendError("expected edge", seq[index])
             index += 1
 
-    def validate(self):
+    def uninitialized(self) -> list[str]:
+        return sorted(name for (name, constraint) in self.variables.items() if constraint is None)
+
+    def graph(self):
         """
-        Checks whether there are unused variables, whether there are initial and final nodes.
+        Assumes initial and final nodes exist and that all variables are initialized.
         """
-        return None
+        graph_nodes = {}
+        for (name, operation) in self.nodes.items():
+            match name:
+                case 'initial':
+                    free = tuple(name for (name, constraint) in self.variables.items() if constraint is None or constraint == 'free')
+                    fixed = tuple(var for var in self.variables.items() if isinstance(var[1], int))
+                    graph_nodes[name] = Node('initial', Initial(free=free, fixed=fixed))
+                case 'final':
+                    graph_nodes[name] = Node('final', Terminal())
+                case _:
+                    if operation is None:
+                        graph_nodes[name] = Node(name, None)
+                    else:
+                        lhs, op, rhs = operation
+                        match op:
+                            case '+=':
+                                graph_op = Addition(lhs, rhs)
+                            case '-=':
+                                graph_op = Subtraction(lhs, rhs)
+                            case '++?':
+                                graph_op = ConditionalIncrement(lhs, rhs)
+                            case _:
+                                raise Exception(f"unknown operation {op}")
+                        graph_nodes[name] = Node(name, graph_op)
+
+        graph = networkx.Graph()
+        graph.add_edges_from([(graph_nodes[n1], graph_nodes[n2]) for (n1, n2) in self.edges])
+        return graph
 
 
-if __name__ == '__main__':
-
-    def readline(stream):
-        buf = []
-        while True:
-            tok = next(stream)
-            if isinstance(tok, FrontendError):
-                return tok
-            if tok is None:
-                return None if len(buf) == 0 else buf
-            if tok.kind == 'symbol' and tok.value == ';':
-                return buf
-            buf.append(tok)
-
-    def prompt():
-        print("\x1B[2mconlog:\x1B[22m", end=' ')
-        line = input()
-        if line in ['exit', 'quit']:
-            exit()
-        return line + "\n"
-
-    stream = TokenStream("", prompt)
-    program = TextProgram()
-
-    while True:
-        seq = readline(stream)
-        if isinstance(seq, FrontendError):
-            log_lines = stream.log.split('\n')
-            seq.show(log_lines)
-            stream.text = ""
-            continue
-        result = program.add_statement(seq)
-        if isinstance(result, FrontendError):
-            log_lines = stream.log.split('\n')
-            result.show(log_lines)
-        print('Unk:   ', program.unknown)
-        print('Vars:  ', program.variables)
-        print('Nodes: ', program.nodes)
-        print('Edges: ', program.edges)
+#~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+# ASCII graph frontend
+#
+# TODO

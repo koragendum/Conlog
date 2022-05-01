@@ -39,13 +39,13 @@ class Subtraction(Operation):
 
 
 @dataclass(frozen=True, order=True)
-class ConditionalAddition(Operation):
+class ConditionalIncrement(Operation):
     lhs: str
     rhs: str | int
 
 
 @dataclass(frozen=True, order=True)
-class ConditionalSubtraction(Operation):
+class ConditionalDecrement(Operation):
     lhs: str
     rhs: str | int
 

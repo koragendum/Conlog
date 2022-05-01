@@ -92,7 +92,7 @@ def compute_successor_states(current_state):
     return successor_states
 
 
-def solve_graph_bfs(graph: nx.Graph):
+def solve_graph_bfs(graph: nx.Graph, limit = 10000):
     # Get key nodes and variables
     initial_node = next(node for node in graph.nodes if isinstance(node.op, Initial))
     terminal_node = next(node for node in graph.nodes if isinstance(node.op, Terminal))
@@ -108,12 +108,12 @@ def solve_graph_bfs(graph: nx.Graph):
         call_stack_parent=None,
     ), None]]
     it = 0
-    while len(queue) > 0 and it < 10000:
+    while len(queue) > 0 and it < limit:
         it += 1
         current_state, history = queue.pop(0)
-        print(current_state)
+        # print(current_state)
         if current_state.node == initial_node and all(current_state.values[n] == fixed[n] for n in fixed):
-            print(f'Done! {current_state=}')
+            # print(f'Done! {current_state=}')
 
             final_path = [current_state]
             while history is not None:
@@ -125,4 +125,4 @@ def solve_graph_bfs(graph: nx.Graph):
         for successor_state in compute_successor_states(current_state):
             queue.append([successor_state, [current_state, history]])
 
-    raise Exception("Search failed")
+    return None
