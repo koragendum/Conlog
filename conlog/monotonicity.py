@@ -49,10 +49,10 @@ def compute_monotone_variables(g: nx.Graph) -> tuple[set[str], set[str]]:
     # - as well.
     #
     # Whenever a node modifies a variable v by a constant non-negative quantity,
-    # we map v -> +, v+ -> +, and v- -> -.
+    # we map v -> +, v+ -> -, and v- -> +.
     #
     # Whenever a node modifies a variable v by a constant non-positive quantity,
-    # we map v -> -, v+ -> -, and v- -> +.
+    # we map v -> -, v+ -> +, and v- -> -.
     #
     # Whenever a node modifies a variable v by adding a variable w, we map
     # v -> w+.
@@ -82,6 +82,22 @@ def compute_monotone_variables(g: nx.Graph) -> tuple[set[str], set[str]]:
     for var in vars:
         neg_vars[var] = Negative(var)
 
+    def increase_var(var: str):
+        monotone_graph.add_edge(vars[var], PositiveTerminal)
+        monotone_graph.add_edge(pos_vars[var], NegativeTerminal)
+        monotone_graph.add_edge(neg_vars[var], PositiveTerminal)
+
+    def decrease_var(var: str):
+        monotone_graph.add_edge(vars[var], NegativeTerminal)
+        monotone_graph.add_edge(pos_vars[var], PositiveTerminal)
+        monotone_graph.add_edge(neg_vars[var], NegativeTerminal)
+
+    def add(lhs: str, rhs: str):
+        monotone_graph.add_edge(vars[lhs], pos_vars[rhs])
+
+    def sub(lhs: str, rhs: str):
+        monotone_graph.add_edge(vars[lhs], neg_vars[rhs])
+
     monotone_graph.add_nodes_from(vars.values())
     monotone_graph.add_nodes_from(pos_vars.values())
     monotone_graph.add_nodes_from(neg_vars.values())
@@ -93,52 +109,32 @@ def compute_monotone_variables(g: nx.Graph) -> tuple[set[str], set[str]]:
             case Addition(lhs=lhs, rhs=rhs):
                 if isinstance(rhs, int):
                     if rhs > 0:
-                        monotone_graph.add_edge(vars[lhs], PositiveTerminal)
-                        monotone_graph.add_edge(pos_vars[lhs], PositiveTerminal)
-                        monotone_graph.add_edge(neg_vars[lhs], NegativeTerminal)
+                        increase_var(lhs)
                     elif rhs < 0:
-                        monotone_graph.add_edge(vars[lhs], NegativeTerminal)
-                        monotone_graph.add_edge(pos_vars[lhs], NegativeTerminal)
-                        monotone_graph.add_edge(neg_vars[lhs], PositiveTerminal)
+                        decrease_var(lhs)
                 else:
-                    monotone_graph.add_edge(vars[lhs], pos_vars[rhs])
-                    monotone_graph.add_edge(pos_vars[lhs], pos_vars[rhs])
-                    monotone_graph.add_edge(neg_vars[lhs], neg_vars[rhs])
+                    add(lhs, rhs)
             case Subtraction(lhs=lhs, rhs=rhs):
                 if isinstance(rhs, int):
                     if rhs > 0:
-                        monotone_graph.add_edge(vars[lhs], NegativeTerminal)
-                        monotone_graph.add_edge(pos_vars[lhs], NegativeTerminal)
-                        monotone_graph.add_edge(neg_vars[lhs], PositiveTerminal)
+                        decrease_var(lhs)
                     elif rhs < 0:
-                        monotone_graph.add_edge(vars[lhs], PositiveTerminal)
-                        monotone_graph.add_edge(pos_vars[lhs], PositiveTerminal)
-                        monotone_graph.add_edge(neg_vars[lhs], NegativeTerminal)
+                        increase_var(lhs)
                 else:
-                    monotone_graph.add_edge(vars[lhs], neg_vars[rhs])
-                    monotone_graph.add_edge(pos_vars[lhs], neg_vars[rhs])
-                    monotone_graph.add_edge(neg_vars[lhs], pos_vars[rhs])
+                    sub(lhs, rhs)
             case ConditionalIncrement(lhs=lhs, rhs=rhs):
                 if isinstance(rhs, int):
                     if rhs > 0:
-                        monotone_graph.add_edge(vars[lhs], PositiveTerminal)
-                        monotone_graph.add_edge(pos_vars[lhs], PositiveTerminal)
-                        monotone_graph.add_edge(neg_vars[lhs], NegativeTerminal)
+                        increase_var(lhs)
                 else:
-                    monotone_graph.add_edge(vars[lhs], PositiveTerminal)
-                    monotone_graph.add_edge(pos_vars[lhs], PositiveTerminal)
-                    monotone_graph.add_edge(neg_vars[lhs], NegativeTerminal)
+                    increase_var(lhs)
 
             case ConditionalDecrement(lhs=lhs, rhs=rhs):
                 if isinstance(rhs, int):
                     if rhs > 0:
-                        monotone_graph.add_edge(vars[lhs], NegativeTerminal)
-                        monotone_graph.add_edge(pos_vars[lhs], NegativeTerminal)
-                        monotone_graph.add_edge(neg_vars[lhs], PositiveTerminal)
+                        decrease_var(lhs)
                 else:
-                    monotone_graph.add_edge(vars[lhs], NegativeTerminal)
-                    monotone_graph.add_edge(pos_vars[lhs], NegativeTerminal)
-                    monotone_graph.add_edge(neg_vars[lhs], PositiveTerminal)
+                    decrease_var(lhs)
 
     monotone_increasing = set()
     monotone_decreasing = set()
