@@ -1,5 +1,5 @@
 
-    [comment__computes_x_multiplies_equals_y=0]
+    [comment__computes_z_equals_x_times_y=0]
 
     (Start)--------+--(da+=1)--(db++?da)--(da-=1)----+----(x-=8)--(da-=1)-(End)
                    |                                 |
