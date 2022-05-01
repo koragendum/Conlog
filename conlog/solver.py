@@ -35,7 +35,7 @@ def compute_new_values_from_node(node, values, reverse=True):
             rvalue *= -1
         if isinstance(node.op, (Addition, Subtraction)):
             rvalue *= rhs
-        if isinstance(node.op, (ConditionalIncrement, ConditionalDecrement)) and rhs > 0:
+        if isinstance(node.op, (ConditionalIncrement, ConditionalDecrement)) and rhs <= 0:
             rvalue = 0  # Do nothing if condition not satisfied
 
         new_values[node.op.lhs] += rvalue
