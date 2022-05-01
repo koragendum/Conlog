@@ -7,13 +7,15 @@ import networkx as nx
 
 from conlog.datatypes import (
     Addition,
+    ConditionalDecrement,
+    ConditionalIncrement,
     Initial,
-    Node,
     IntegerPrint,
-    UnicodePrint,
+    Node,
     Solution,
     Subtraction,
     Terminal,
+    UnicodePrint,
 )
 from conlog.directed import make_uturnless
 from conlog.evaluator import evaluate
@@ -62,6 +64,22 @@ def compute_initial_values(path: list[Node]) -> dict[str, int]:
                     assignment[lhs] += rhs
                 else:
                     assignment[lhs] += assignment[rhs]
+            case ConditionalDecrement(lhs=lhs, rhs=rhs):
+                if isinstance(rhs, int):
+                    cond = rhs > 0
+                else:
+                    cond = assignment[rhs] > 0
+
+                if cond:
+                    assignment[lhs] -= 1
+            case ConditionalIncrement(lhs=lhs, rhs=rhs):
+                if isinstance(rhs, int):
+                    cond = rhs > 0
+                else:
+                    cond = assignment[rhs] > 0
+
+                if cond:
+                    assignment[lhs] += 1
             case Terminal():
                 pass
             case _:
