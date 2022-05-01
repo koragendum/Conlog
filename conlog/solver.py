@@ -30,14 +30,15 @@ def compute_new_values_from_node(node, values, reverse=True):
         else:
             rhs = new_values[node.op.rhs]
 
-        sign = -1 if reverse else 1
+        rvalue = (-1 if reverse else 1)
         if isinstance(node.op, (Subtraction, ConditionalDecrement)):
-            sign *= -1
-
+            rvalue *= -1
+        if isinstance(node.op, (Addition, Subtraction)):
+            rvalue *= rhs
         if isinstance(node.op, (ConditionalIncrement, ConditionalDecrement)) and rhs > 0:
-            sign = 0  # Do nothing if condition not satisfied
+            rvalue = 0  # Do nothing if condition not satisfied
 
-        new_values[node.op.lhs] += sign * rhs
+        new_values[node.op.lhs] += rvalue
 
     return new_values
 

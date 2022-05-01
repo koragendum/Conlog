@@ -15,7 +15,7 @@ if __name__ == '__main__':
     Graph that computes either T=triangle_sum(x) or T=triangle_sum(x-1)
     depending on the first path taken. (no one-way gadget used)
 
-        Initial----------------None---DecrT---Terminal
+        Initial----------------None-----Terminal
         |                       |
         '--DecrX----SubFbyX-----'
 

@@ -2,6 +2,8 @@ from typing import cast
 
 from conlog.datatypes import (
     Addition,
+    ConditionalDecrement,
+    ConditionalIncrement,
     Initial,
     Node,
     Print,
@@ -42,6 +44,20 @@ def evaluate(path: list[Node], assignment: dict[str, int]) -> Solution | None:
                     var_values[lhs] -= rhs
                 else:
                     var_values[lhs] -= var_values[rhs]
+            case ConditionalIncrement(lhs=lhs, rhs=rhs):
+                if isinstance(rhs, int):
+                    rvalue = rhs
+                else:
+                    rvalue = var_values[rhs]
+                if rvalue > 0:
+                    var_values[lhs] += 1
+            case ConditionalDecrement(lhs=lhs, rhs=rhs):
+                if isinstance(rhs, int):
+                    rvalue = rhs
+                else:
+                    rvalue = var_values[rhs]
+                if rvalue > 0:
+                    var_values[lhs] -= 1
             case Terminal():
                 for _, x in var_values.items():
                     if x != 0:
