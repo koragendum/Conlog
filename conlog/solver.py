@@ -9,6 +9,7 @@ from conlog.datatypes import (
     Subtraction,
     Terminal,
 )
+from conlog.evaluator import evaluate
 from dataclasses import dataclass
 import networkx as nx
 
@@ -44,6 +45,29 @@ def compute_new_values_from_node(node, values, reverse=True):
 
 
 def compute_successor_states(current_state):
+    if isinstance(current_state.node.op, Terminal) and current_state.last_node is not None:
+        return []  # Terminals terminate the search.
+
+    successor_states = []
+    successor_values = compute_new_values_from_node(current_state.node, current_state.values, reverse=True)
+    for successor_node in current_state.graph.neighbors(current_state.node):
+        if successor_node == current_state.last_node:
+            continue  # No backtracking allowed
+        successor_states.append(SearchState(
+            node=successor_node,
+            last_node=current_state.node,
+            values=successor_values,
+            graph=current_state.graph,
+            call_stack_parent=current_state.call_stack_parent,
+        ))
+
+    return successor_states
+
+
+def compute_successor_states_with_functions(current_state):
+    if isinstance(current_state.node.op, Terminal) and current_state.last_node is not None:
+        return []  # Terminals terminate the search.
+
     if isinstance(current_state.node.op, Function):
         # Recurse into function
         next_initial_node = next(node for node in current_state.node.op.graph.nodes if isinstance(node.op, Initial))
@@ -120,14 +144,14 @@ def solve_graph_bfs(graph: nx.Graph, limit = None):
     while len(queue) > 0 and it < limit:
         it += 1
         current_state, history = queue.pop(0)
-        # print(current_state)
         if current_state.node == initial_node and all(current_state.values[n] == fixed[n] for n in fixed):
-            # print(f'Done! {current_state=}')
-
             final_path = [current_state]
             while history is not None:
                 head, history = history
                 final_path.append(head)
+
+            # One last check: try evaluator on search result.
+            evaluate([cs.node for cs in final_path], current_state.values)
 
             return current_state, final_path
 

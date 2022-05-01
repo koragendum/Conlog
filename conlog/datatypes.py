@@ -57,6 +57,9 @@ class ConditionalDecrement(Operation):
 
 @dataclass(frozen=True)
 class Function(Operation):
+    """
+    Deprecated
+    """
     graph: nx.Graph
     var_map: tuple[tuple[str, str], ...]
 
