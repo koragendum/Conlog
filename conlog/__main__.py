@@ -1,6 +1,7 @@
+import argparse
 from conlog.brute     import interpret
 from conlog.evaluator import evaluate
-from conlog.frontends import FrontendError, TokenStream, TextProgram
+from conlog.frontends import convert_to_grid, GridError, FrontendError, make_grid_program, TokenStream, TextProgram
 from conlog.solver    import solve_graph_bfs
 
 AUTO_SEMICOLON = True
@@ -33,6 +34,50 @@ stream = TokenStream("", prompt)
 program = TextProgram()
 strategy = 'g'
 limit = 65536
+
+
+ap = argparse.ArgumentParser()
+ap.add_argument('input_file', metavar='FILE', nargs='?', default=None, help='A graph file to parse and execute')
+args = ap.parse_args()
+
+
+if args.input_file is not None:
+    grid_file_name = args.input_file
+
+    if grid_file_name[-4:] != '.clg':
+        print('Warning! Not a .clg file: %s' % grid_file_name)
+
+    grid_text = open(grid_file_name, 'r').read()
+
+    grid = convert_to_grid(grid_text)
+    if isinstance(grid, GridError):
+        grid.show()
+    program = make_grid_program(grid)
+    if isinstance(program, GridError):
+        program.show(grid)
+        exit()
+    for line in grid:
+        print(line)
+    print('\x1B[1mNodes\x1B[22m')
+    program.show('nodes')
+    print('\x1B[1mVariables\x1B[22m')
+    program.show('vars')
+
+    graph = program.graph()
+    solve_result = solve_graph_bfs(graph)
+    if solve_result is None:
+        print('unsatisfiable')
+        exit()
+
+    print('\x1B[1mSolution\x1B[22m')
+    answer, path = solve_result
+    solution = evaluate([x.node for x in path], answer.values)
+    for (name, value) in solution.assignment.items():
+        if program.variables[name] in ('free', None):
+            print(f"\x1B[95m{name}\x1B[39m = \x1B[95m{value}\x1B[39m")
+
+    exit(0)
+
 
 while True:
     seq = stream.readline()
