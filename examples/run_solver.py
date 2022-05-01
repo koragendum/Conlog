@@ -3,7 +3,7 @@ from conlog.datatypes import (
     make_graph,
     Initial,
     Node,
-    Print,
+    IntegerPrint,
     Subtraction,
     Terminal,
 )
@@ -24,7 +24,7 @@ if __name__ == '__main__':
         Node("initial", Initial(free=("T",), fixed=(("n", 6),))),
         Node("decr_x", Subtraction("n", 1)),
         Node("sub_t_x", Subtraction("T", "n")),
-        Node("none", Print('T')),
+        Node("none", IntegerPrint('T')),
         Node("terminal", Terminal()),
     ]
     either_trisum_d = {n.name: n for n in either_trisum_nodes}

@@ -1,6 +1,5 @@
 """A brute-force interpreter."""
 
-import time
 from collections import deque
 from typing import Iterator, cast
 
@@ -10,7 +9,8 @@ from conlog.datatypes import (
     Addition,
     Initial,
     Node,
-    Print,
+    IntegerPrint,
+    UnicodePrint,
     Solution,
     Subtraction,
     Terminal,
@@ -48,7 +48,9 @@ def compute_initial_values(path: list[Node]) -> dict[str, int]:
                 pass
             case None:
                 pass
-            case Print():
+            case IntegerPrint():
+                pass
+            case UnicodePrint():
                 pass
             case Addition(lhs=lhs, rhs=rhs):
                 if isinstance(rhs, int):

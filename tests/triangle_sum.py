@@ -5,7 +5,6 @@ from conlog.datatypes import (
     Initial,
     Node,
     Operation,
-    Print,
     Subtraction,
     Terminal,
     make_graph,

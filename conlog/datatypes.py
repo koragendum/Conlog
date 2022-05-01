@@ -28,8 +28,13 @@ class Addition(Operation):
 
 
 @dataclass(frozen=True, order=True)
-class Print(Operation):
-    var: str
+class IntegerPrint(Operation):
+    var: str | int
+
+
+@dataclass(frozen=True, order=True)
+class UnicodePrint(Operation):
+    var: str | int
 
 
 @dataclass(frozen=True, order=True)

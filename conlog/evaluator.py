@@ -6,7 +6,8 @@ from conlog.datatypes import (
     ConditionalIncrement,
     Initial,
     Node,
-    Print,
+    IntegerPrint,
+    UnicodePrint,
     Solution,
     Subtraction,
     Terminal,
@@ -32,8 +33,16 @@ def evaluate(path: list[Node], assignment: dict[str, int]) -> Solution | None:
                 pass
             case None:
                 pass
-            case Print(var=var):
-                prints.append(str(var_values[var]))
+            case IntegerPrint(var=var):
+                if isinstance(rhs, int):
+                    prints.append(str(var))
+                else:
+                    prints.append(str(var_values[var]))
+            case UnicodePrint(var=var):
+                if isinstance(rhs, int):
+                    prints.append(chr(var))
+                else:
+                    prints.append(chr(var_values[var]))
             case Addition(lhs=lhs, rhs=rhs):
                 if isinstance(rhs, int):
                     var_values[lhs] += rhs
