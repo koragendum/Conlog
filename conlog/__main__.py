@@ -12,7 +12,6 @@ AUTO_SEMICOLON  = True
 
 parser = argparse.ArgumentParser()
 parser.add_argument('inp',        metavar='FILE',     nargs='?',           default=None,  help='conlog file to parse and execute')
-parser.add_argument('--text',     '-t',               action='store_true', default=False, help='interpret file as text rather than grid')
 parser.add_argument('--strategy', metavar='STRATEGY', choices=('g', 'p'),  default='p',   help='strategy to use')
 parser.add_argument('--limit',    metavar='N',        type=int,            default=None,  help='search limit')
 parser.add_argument('--interactive', '-i',            action='store_true', default=False, help='load graph then start interactive session')
@@ -25,13 +24,15 @@ limit = 65536 if args.limit is None else args.limit
 
 if (filename := args.inp) is not None:
 
-    if not any(filename.endswith(ext) for ext in ('.cl', '.cla', '.clg')):
-        print('\x1B[93mwarning\x1B[39m: not a  file: %s' % grid_file_name)
+    is_grid_file = any(filename.endswith(ext) for ext in ('.cla', '.clg'))
+    is_text_file = any(filename.endswith(ext) for ext in ('.clt', '.cl'))
+    if not (is_grid_file or is_text_file):
+        print('\x1B[93mwarning\x1B[39m: not a conlog file: %s' % grid_file_name)
 
     with open(filename, 'r') as f:
         filetext = f.read()
 
-    if args.text:
+    if is_text_file:
         stream = TokenStream(filetext, None)
         program = TextProgram()
         while True:
