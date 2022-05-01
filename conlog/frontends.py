@@ -434,14 +434,18 @@ class GridError:
         print(f"\x1B[91merror\x1B[39m: {self.message}", end='')
         if self.row is not None and self.column is not None:
             print(f"\x1B[2m at row {self.row} column {self.column}\x1B[22m")
+            margin = "\x1B[2m\u2502\x1B[22m "
             for line in grid[:self.row]:
+                print(margin, end='')
                 print(line)
             line = grid[self.row]
+            print(margin, end='')
             print(line[:self.column], end='')
             print(f"\x1B[91;1m{line[self.column]}\x1B[39;22m", end='')
             print(line[self.column+1:], end='')
             print()
             for line in grid[self.row+1:]:
+                print(margin, end='')
                 print(line)
         else:
             print()
@@ -637,12 +641,77 @@ class GridProgram(Program):
             self.nodes['final'] = None
             return
 
-        # var op var|const
-        self.nodes[node_name] = None
+        match = name_regex.match(text)
+        if match is None:
+            return GridError("expected variable name at start of label", row, column)
+
+        lhs = match.group()
+        text = text[match.end():].lstrip()
+
+        if (prefix := text[:3]) in OPERATORS \
+        or (prefix := text[:2]) in OPERATORS \
+        or (prefix := text[:1]) in OPERATORS:
+            op = prefix
+        else:
+            return GridError("expected operator after variable name", row, column)
+
+        text = text[len(op):].lstrip()
+
+        if (match := name_regex.match(text)) is not None:
+            rhs = match.group()
+        elif (match := num_regex.match(text)) is not None:
+            rhs = int(match.group().replace(GRP_SEPR, ''))
+        elif (match := char_regex.match(text)) is not None:
+            rhs = ord(match.group()[1:])
+        else:
+            return GridError("expected literal or variable name after operator", row, column)
+
+        text = text[match.end():]
+        if len(text) > 0:
+            return GridError("extraneous characters at end of label", row, column)
+
+        if lhs not in self.variables:
+            self.variables[lhs] = None
+
+        if isinstance(rhs, str):
+            if rhs not in self.variables:
+                self.variables[rhs] = None
+
+        self.nodes[node_name] = (lhs, op, rhs)
 
     def add_constraint(self, region_id, row, column, text):
-        # var = const
-        pass
+        text = text.strip()
+        match = name_regex.match(text)
+        if match is None:
+            return GridError("expected variable name at start of constraint", row, column)
+
+        name = match.group()
+        text = text[match.end():].lstrip()
+
+        if text[0] != '=':
+            return GridError("expected equality after variable name", row, column)
+
+        text = text[1:].lstrip()
+
+        if text[0] == '?':
+            value = 'free'
+            text = text[1:]
+        elif (match := num_regex.match(text)) is not None:
+            value = int(match.group().replace(GRP_SEPR, ''))
+            text = text[match.end():]
+        elif (match := char_regex.match(text)) is not None:
+            value = ord(match.group()[1:])
+            text = text[match.end():]
+        else:
+            return GridError("variable must initialized to a constant or marked free", row, column)
+
+        if len(text) > 0:
+            return GridError("extraneous characters at end of constraint", row, column)
+
+        if name in self.variables and self.variables[name] is not None:
+            return GridError("variable has already been initialized", row, column)
+
+        self.variables[name] = value
 
 
 def make_grid_program(grid):
@@ -700,32 +769,8 @@ def make_grid_program(grid):
     return program
 
 
-test = """
-
-  
-    (Start)----#################---(End)
-               |               |
-               |               |
-            (n-=1)             |
-               |               |   [T=36]
-               +-----(T-=n)----+
-
-    
-
-"""
-
-grid = convert_to_grid(test)
-if isinstance(grid, GridError):
-    grid.show()
-program = make_grid_program(grid)
-if isinstance(program, GridError):
-    program.show(grid)
-else:
-    program.show('nodes')
-
 """
 TODO
-- finish grid node and constraint parsing
 - text program from string (for testing)
 - load from file
 - different strategies

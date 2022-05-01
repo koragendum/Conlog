@@ -1,6 +1,6 @@
-from conlog.evaluator    import evaluate
-from conlog.frontends    import FrontendError, TokenStream, TextProgram
-from conlog.solver_astar import solve_graph_bfs
+from conlog.evaluator import evaluate
+from conlog.frontends import FrontendError, TokenStream, TextProgram
+from conlog.solver    import solve_graph_bfs
 
 AUTO_SEMICOLON = True
 
@@ -75,6 +75,10 @@ while True:
             if len(nodes) > 15:
                 nodes = nodes[:7] + ["..."] + nodes[-7:]
             print(' -- '.join(nodes))
+
+        if strategy == 'p':
+            print('unimplemented')
+            # TODO
 
     if len(seq) < 3 and seq[0].kind == 'name' and seq[0].value == 'strategy':
         if len(seq) == 1:
