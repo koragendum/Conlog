@@ -18,7 +18,7 @@ from conlog.datatypes import (
     Subtraction,
     Terminal,
 )
-from conlog.directed import make_uturnless
+from conlog.directed import elide_none_none, make_uturnless
 from conlog.evaluator import evaluate, partial_evaluate
 from conlog.monotonicity import compute_monotone_variables, find_initial
 
@@ -148,7 +148,7 @@ def bounds_violated(
 
 def interpret(g: nx.Graph, limit: int | None = None) -> Iterator[Solution]:
     initial = find_initial(g)
-    dg = make_uturnless(g)
+    dg = elide_none_none(make_uturnless(g))
 
     monotone_inc, monotone_dec = compute_monotone_variables(g)
     queue = deque()
