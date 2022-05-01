@@ -8,6 +8,7 @@ from conlog.datatypes import (
     Subtraction,
     Terminal,
 )
+import networkx as nx
 
 
 if __name__ == '__main__':
@@ -48,6 +49,7 @@ if __name__ == '__main__':
            '-SwapXY---SubXY---DecrZ
 
     """
+    fib_graph = nx.Graph()
     fib_nodes = [
         Node("initial", Initial(free=("x", "y"), fixed=(("z", 8),))),
         Node("swap_x_y", Function(graph=swap_graph, var_map=(('x', 'X'), ('y', 'Y')))),
@@ -69,6 +71,7 @@ if __name__ == '__main__':
             (fib_d["none"], fib_d["decr_x"]),
             (fib_d["decr_x"], fib_d["terminal"]),
         ],
+        g=fib_graph,
     )
 
     ans, final_path = solve_graph_bfs(fib_graph)
