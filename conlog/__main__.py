@@ -15,6 +15,8 @@ parser.add_argument('inp',        metavar='FILE',     nargs='?',           defau
 parser.add_argument('--strategy', metavar='STRATEGY', choices=('g', 'p'),  default='p',   help='strategy to use')
 parser.add_argument('--limit',    metavar='N',        type=int,            default=None,  help='search limit')
 parser.add_argument('--interactive', '-i',            action='store_true', default=False, help='load graph then start interactive session')
+parser.add_argument('--debug', '-d',                  action='store_true', default=False, help='enable solver debugging output')
+parser.add_argument('--plot',                         action='store_true', default=False, help='load graph then plot and exit')
 # parser.add_argument('--text',     '-t',               action='store_true', default=False, help='interpret file as text rather than grid')
 args = parser.parse_args()
 
@@ -37,6 +39,10 @@ if (filename := args.inp) is not None:
     if isinstance(program, GridError):
         program.show(grid)
         exit(1)
+
+    if args.plot:
+        plot_graph(program.graph())
+        exit(0)
 
     if args.interactive:
         conversion = TextProgram()
