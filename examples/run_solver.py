@@ -3,9 +3,11 @@ from conlog.datatypes import (
     make_graph,
     Initial,
     Node,
+    Print,
     Subtraction,
     Terminal,
 )
+from conlog.evaluator import evaluate
 
 
 if __name__ == '__main__':
@@ -22,7 +24,7 @@ if __name__ == '__main__':
         Node("initial", Initial(free=("T",), fixed=(("n", 6),))),
         Node("decr_x", Subtraction("n", 1)),
         Node("sub_t_x", Subtraction("T", "n")),
-        Node("none", None),
+        Node("none", Print('T')),
         Node("terminal", Terminal()),
     ]
     either_trisum_d = {n.name: n for n in either_trisum_nodes}
@@ -43,5 +45,6 @@ if __name__ == '__main__':
     print()
     for n in final_path:
         print(n)
+    print()
 
-
+    print(evaluate([n.node for n in final_path], ans.values))
