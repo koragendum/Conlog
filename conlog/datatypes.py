@@ -39,6 +39,12 @@ class Subtraction(Operation):
 
 
 @dataclass(frozen=True)
+class Function(Operation):
+    graph: nx.Graph
+    var_map: tuple[tuple[str, str], ...]
+
+
+@dataclass(frozen=True)
 class Node:
     name: str
     op: Operation | None
