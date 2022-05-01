@@ -771,10 +771,7 @@ def make_grid_program(grid):
 
 """
 TODO
-- text program from string (for testing)
 - load from file
-- different strategies
 - print nodes
-- help
 - function / macro support
 """
