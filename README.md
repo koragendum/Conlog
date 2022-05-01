@@ -9,7 +9,7 @@
 
 ```
 
-    [comment__computes_x_prime_relative_to_one_through_seven=0]
+    [comment__computes_x_the_next_lcm_of_all_the_numbers=0]
 
 
     (Start)---+
@@ -20,7 +20,7 @@
               |
           (dummy+=x)               +------+----+--(db++?x)         +------+----+--(db++?x)
               |                    |      |    |     |             |      |    |     |
-              |                    |   (x-=12) |  (neg_x-=x)       |   (x-=7)  |  (neg_x-=x)
+              |                    |   (x-=3)  |  (neg_x-=x)       |   (x-=7)  |  (neg_x-=x)
            (da-=1)                 |      |    |     |             |      |    |     |
               |                    |      +----+ (db++?neg_x)      |      +----+ (db++?neg_x)
           (db++?da)                |                 |             |                 |
