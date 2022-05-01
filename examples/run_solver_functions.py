@@ -1,5 +1,6 @@
 from conlog.solver_astar import solve_graph_bfs
 from conlog.datatypes import (
+    add_edges_to_graph,
     Addition,
     make_graph,
     Function,
@@ -61,7 +62,7 @@ if __name__ == '__main__':
     ]
     fib_d = {n.name: n for n in fib_nodes}
 
-    fib_graph = make_graph(
+    add_edges_to_graph(
         edges=[
             (fib_d["initial"], fib_d["swap_x_y"]),
             (fib_d["swap_x_y"], fib_d["sub_x_y"]),
