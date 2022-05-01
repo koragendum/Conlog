@@ -15,7 +15,6 @@ parser.add_argument('inp',        metavar='FILE',     nargs='?',           defau
 parser.add_argument('--strategy', metavar='STRATEGY', choices=('g', 'p'),  default='p',   help='strategy to use')
 parser.add_argument('--limit',    metavar='N',        type=int,            default=None,  help='search limit')
 parser.add_argument('--interactive', '-i',            action='store_true', default=False, help='load graph then start interactive session')
-parser.add_argument('--debug', '-d',                  action='store_true', default=False, help='enable solver debugging output')
 parser.add_argument('--plot',                         action='store_true', default=False, help='load graph then plot and exit')
 args = parser.parse_args()
 
@@ -174,9 +173,9 @@ while True:
                 limit = seq[1].value
         continue
 
-    is_command = (len(seq) == 1 and seq[0].kind == 'name')
+    if len(seq) < 3 and seq[0].value in ('solve', 'go'):
+        find_all = (len(seq) == 2 and seq[1].value == 'all')
 
-    if is_command and seq[0].value in ('solve', 'go'):
         has_initial = 'initial' in program.nodes
         has_final   = 'final'   in program.nodes
         if not (has_initial and has_final):
@@ -211,38 +210,62 @@ while True:
             continue
 
         print("\x1B[92msatisfiable\x1B[39m")
-        for (name, value) in solution.assignment.items():
-            if program.variables[name] in ('free', None):
-                print(f"\x1B[95m{name}\x1B[39m = \x1B[95m{value}\x1B[39m")
-        last_emitted = None
-        for out in solution.stdout:
-            if isinstance(out, str):
-                if last_emitted is None or last_emitted == 'character':
-                    print(out, end='')
+        alternate = False
+        while True:
+            first = True
+            for (name, value) in solution.assignment.items():
+                if program.variables[name] in ('free', None):
+                    if alternate and not first:
+                        print('   ', end='')
+                    print(f"\x1B[95m{name}\x1B[39m = \x1B[95m{value}\x1B[39m")
+                    first = False
+            last_emitted = None
+            for out in solution.stdout:
+                if isinstance(out, str):
+                    if last_emitted is None or last_emitted == 'character':
+                        print(out, end='')
+                    else:
+                        print(' ' + out, end='')
+                    last_emitted = 'character'
                 else:
-                    print(' ' + out, end='')
-                last_emitted = 'character'
-            else:
-                if last_emitted is None:
-                    print(str(out), end='')
-                else:
-                    print(' ' + str(out), end='')
-                last_emitted = 'numeric'
-        if len(solution.stdout) > 0:
-            print()
+                    if last_emitted is None:
+                        print(str(out), end='')
+                    else:
+                        print(' ' + str(out), end='')
+                    last_emitted = 'numeric'
+            if len(solution.stdout) > 0:
+                print()
 
-        # Uncomment to print the path
-        # nodes = [f"\x1B[94m{node.name}\x1B[39m" for node in solution.path]
-        # if len(nodes) > 15:
-        #     nodes = nodes[:7] + ["..."] + nodes[-7:]
-        # print(' -- '.join(nodes))
+            # Uncomment to print the path
+            # nodes = [f"\x1B[94m{node.name}\x1B[39m" for node in solution.path]
+            # if len(nodes) > 15:
+            #     nodes = nodes[:7] + ["..."] + nodes[-7:]
+            # print(' -- '.join(nodes))
+
+            if not find_all:
+                break
+
+            alternate = True
+            try:
+                solution = next(interpreter)
+            except StopIteration:
+                break 
+            except KeyboardInterrupt:
+                print('\rinterrupted')
+                break
+            print("\x1B[2mor\x1B[22m", end=' ')
+
+        continue
+
+    is_command = (len(seq) == 1 and seq[0].kind == 'name')
 
     if is_command and seq[0].value == 'help':
         print("strategy            print the current strategy")
         print("strategy g|p        set the strategy to g or p")
         print("limit               print the current search limit")
         print("limit <num>         set the search limit to <num>")
-        print("solve|go            solve the current graph")
+        print("go|search|solve     solve the current graph")
+        print("go|... all          find all solutions (strategy p only)")
         print("reset|clear         reset the current graph")
         print("<name>              print the definition of <name>")
         print("vars                print the definitions of all variables")
