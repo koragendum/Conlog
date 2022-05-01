@@ -38,6 +38,18 @@ class Subtraction(Operation):
     rhs: str | int
 
 
+@dataclass(frozen=True, order=True)
+class ConditionalIncrement(Operation):
+    lhs: str
+    rhs: str | int
+
+
+@dataclass(frozen=True, order=True)
+class ConditionalDecrement(Operation):
+    lhs: str
+    rhs: str | int
+
+
 @dataclass(frozen=True)
 class Function(Operation):
     graph: nx.Graph
