@@ -722,3 +722,14 @@ if isinstance(program, GridError):
     program.show(grid)
 else:
     program.show('nodes')
+
+"""
+TODO
+- finish grid node and constraint parsing
+- text program from string (for testing)
+- load from file
+- different strategies
+- print nodes
+- help
+- function / macro support
+"""
