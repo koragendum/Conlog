@@ -34,12 +34,12 @@ def evaluate(path: list[Node], assignment: dict[str, int]) -> Solution | None:
             case None:
                 pass
             case IntegerPrint(var=var):
-                if isinstance(rhs, int):
+                if isinstance(var, int):
                     prints.append(str(var))
                 else:
                     prints.append(str(var_values[var]))
             case UnicodePrint(var=var):
-                if isinstance(rhs, int):
+                if isinstance(var, int):
                     prints.append(chr(var))
                 else:
                     prints.append(chr(var_values[var]))
