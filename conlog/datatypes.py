@@ -7,7 +7,11 @@ import networkx as nx
 
 @dataclass(frozen=True, order=True)
 class Operation:
-    pass
+    def update(self, assignment: dict[str, int], stdout: list[str | int]) -> None:
+        """Update the variable assignments and stdout in-place
+        by visiting this operation."""
+
+        pass
 
 
 @dataclass(frozen=True, order=True)
@@ -35,6 +39,12 @@ class Addition(Operation):
     def __str__(self) -> str:
         return f"{self.lhs}+={self.rhs}"
 
+    def update(self, assignment: dict[str, int], stdout: list[str | int]) -> None:
+        if isinstance(self.rhs, int):
+            assignment[self.lhs] += self.rhs
+        else:
+            assignment[self.lhs] += assignment[self.rhs]
+
 
 @dataclass(frozen=True, order=True)
 class IntegerPrint(Operation):
@@ -42,6 +52,12 @@ class IntegerPrint(Operation):
 
     def __str__(self) -> str:
         return f"iprint {self.var}"
+
+    def update(self, assignment: dict[str, int], stdout: list[str | int]) -> None:
+        if isinstance(self.var, int):
+            stdout.append(self.var)
+        else:
+            stdout.append(assignment[self.var])
 
 
 @dataclass(frozen=True, order=True)
@@ -51,6 +67,12 @@ class UnicodePrint(Operation):
     def __str__(self) -> str:
         return f"uprint {self.var}"
 
+    def update(self, assignment: dict[str, int], stdout: list[str | int]) -> None:
+        if isinstance(self.var, int):
+            stdout.append(chr(self.var))
+        else:
+            stdout.append(chr(assignment[self.var]))
+
 
 @dataclass(frozen=True, order=True)
 class Subtraction(Operation):
@@ -58,7 +80,13 @@ class Subtraction(Operation):
     rhs: str | int
 
     def __str__(self) -> str:
-        return f"{self.lhs}+={self.rhs}"
+        return f"{self.lhs}-={self.rhs}"
+
+    def update(self, assignment: dict[str, int], stdout: list[str | int]) -> None:
+        if isinstance(self.rhs, int):
+            assignment[self.lhs] -= self.rhs
+        else:
+            assignment[self.lhs] -= assignment[self.rhs]
 
 
 @dataclass(frozen=True, order=True)
@@ -69,6 +97,13 @@ class ConditionalIncrement(Operation):
     def __str__(self) -> str:
         return f"{self.lhs}++?{self.rhs}"
 
+    def update(self, assignment: dict[str, int], stdout: list[str | int]) -> None:
+        if isinstance(self.rhs, int):
+            if self.rhs > 0:
+                assignment[self.lhs] += 1
+        elif assignment[self.rhs] > 0:
+            assignment[self.lhs] += 1
+
 
 @dataclass(frozen=True, order=True)
 class ConditionalDecrement(Operation):
@@ -77,6 +112,13 @@ class ConditionalDecrement(Operation):
 
     def __str__(self) -> str:
         return f"{self.lhs}--?{self.rhs}"
+
+    def update(self, assignment: dict[str, int], stdout: list[str | int]) -> None:
+        if isinstance(self.rhs, int):
+            if self.rhs > 0:
+                assignment[self.lhs] -= 1
+        elif assignment[self.rhs] > 0:
+            assignment[self.lhs] -= 1
 
 
 @dataclass(frozen=True, order=True)
@@ -89,7 +131,7 @@ class Node:
 class Solution:
     path: list[Node]
     assignment: dict[str, int]
-    stdout: list[str]
+    stdout: list[str | int]
 
 
 def make_graph(edges: Iterable[tuple[Node, Node]]) -> nx.Graph:

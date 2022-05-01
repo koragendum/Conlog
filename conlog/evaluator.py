@@ -5,16 +5,18 @@ from conlog.datatypes import (
     ConditionalDecrement,
     ConditionalIncrement,
     Initial,
-    Node,
     IntegerPrint,
-    UnicodePrint,
+    Node,
     Solution,
     Subtraction,
     Terminal,
+    UnicodePrint,
 )
 
 
-def partial_evaluate(path: list[Node], assignment: dict[str, int]) -> tuple[dict[str, int], list[str]]:
+def partial_evaluate(
+    path: list[Node], assignment: dict[str, int]
+) -> tuple[dict[str, int], list[str | int]]:
     var_values = dict(assignment)
     prints = []
 
@@ -22,48 +24,12 @@ def partial_evaluate(path: list[Node], assignment: dict[str, int]) -> tuple[dict
 
     for node in path[1:]:
         match node.op:
-            case Initial():
-                pass
-            case None:
-                pass
-            case IntegerPrint(var=var):
-                if isinstance(var, int):
-                    prints.append(var)
-                else:
-                    prints.append(var_values[var])
-            case UnicodePrint(var=var):
-                if isinstance(var, int):
-                    prints.append(chr(var))
-                else:
-                    prints.append(chr(var_values[var]))
-            case Addition(lhs=lhs, rhs=rhs):
-                if isinstance(rhs, int):
-                    var_values[lhs] += rhs
-                else:
-                    var_values[lhs] += var_values[rhs]
-            case Subtraction(lhs=lhs, rhs=rhs):
-                if isinstance(rhs, int):
-                    var_values[lhs] -= rhs
-                else:
-                    var_values[lhs] -= var_values[rhs]
-            case ConditionalIncrement(lhs=lhs, rhs=rhs):
-                if isinstance(rhs, int):
-                    rvalue = rhs
-                else:
-                    rvalue = var_values[rhs]
-                if rvalue > 0:
-                    var_values[lhs] += 1
-            case ConditionalDecrement(lhs=lhs, rhs=rhs):
-                if isinstance(rhs, int):
-                    rvalue = rhs
-                else:
-                    rvalue = var_values[rhs]
-                if rvalue > 0:
-                    var_values[lhs] -= 1
             case Terminal():
                 return var_values, prints
-            case _:
-                raise ValueError(f"Unknown operation: {node.op}")
+            case None:
+                pass
+            case op:
+                op.update(var_values, prints)
 
         if found_terminal:
             break
