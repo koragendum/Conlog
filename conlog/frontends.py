@@ -294,7 +294,7 @@ class TokenStream:
             if isinstance(tok, FrontendError):
                 return tok
             if tok is None:
-                return buf
+                return buf if len(buf) > 0 else None
             if tok.kind == 'symbol' and tok.value == ';':
                 return buf
             buf.append(tok)

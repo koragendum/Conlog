@@ -12,12 +12,12 @@ AUTO_SEMICOLON  = True
 
 parser = argparse.ArgumentParser()
 parser.add_argument('inp',        metavar='FILE',     nargs='?',           default=None,  help='conlog file to parse and execute')
+parser.add_argument('--text',     '-t',               action='store_true', default=False, help='interpret file as text rather than grid')
 parser.add_argument('--strategy', metavar='STRATEGY', choices=('g', 'p'),  default='p',   help='strategy to use')
 parser.add_argument('--limit',    metavar='N',        type=int,            default=None,  help='search limit')
 parser.add_argument('--interactive', '-i',            action='store_true', default=False, help='load graph then start interactive session')
 parser.add_argument('--debug', '-d',                  action='store_true', default=False, help='enable solver debugging output')
 parser.add_argument('--plot',                         action='store_true', default=False, help='load graph then plot and exit')
-# parser.add_argument('--text',     '-t',               action='store_true', default=False, help='interpret file as text rather than grid')
 args = parser.parse_args()
 
 strategy = args.strategy
@@ -29,29 +29,47 @@ if (filename := args.inp) is not None:
         print('\x1B[93mwarning\x1B[39m: not a  file: %s' % grid_file_name)
 
     with open(filename, 'r') as f:
-        text = f.read()
+        filetext = f.read()
 
-    grid = convert_to_grid(text)
-    if isinstance(grid, GridError):
-        grid.show()
-        exit(1)
-    program = make_grid_program(grid)
-    if isinstance(program, GridError):
-        program.show(grid)
-        exit(1)
+    if args.text:
+        stream = TokenStream(filetext, None)
+        program = TextProgram()
+        while True:
+            seq = stream.readline()
+            if isinstance(seq, FrontendError):
+                log_lines = stream.log.split('\n')
+                seq.show(log_lines)
+                exit(1) 
+            if seq is None:
+                break
+            if len(seq) == 0:
+                continue
+            result = program.add_statement(seq, allow_reinit=True)
+            if isinstance(result, FrontendError):
+                log_lines = stream.log.split('\n')
+                result.show(log_lines)
+                exit(1)
+    else:
+        grid = convert_to_grid(filetext)
+        if isinstance(grid, GridError):
+            grid.show()
+            exit(1)
+        program = make_grid_program(grid)
+        if isinstance(program, GridError):
+            program.show(grid)
+            exit(1)
 
     if args.plot:
         plot_graph(program.graph())
         exit(0)
 
     if args.interactive:
-        conversion = TextProgram()
-
-        conversion.variables = program.variables
-        conversion.nodes     = program.nodes
-        conversion.edges     = program.edges
-
-        program = conversion
+        if not args.text:
+            conversion = TextProgram()
+            conversion.variables = program.variables
+            conversion.nodes     = program.nodes
+            conversion.edges     = program.edges
+            program = conversion
 
     else:
         graph = program.graph()
@@ -128,6 +146,8 @@ while True:
         log_lines = stream.log.split('\n')
         seq.show(log_lines)
         continue
+    if seq is None:
+        break
     if len(seq) == 0:
         continue
 
