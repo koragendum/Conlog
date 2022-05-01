@@ -8,6 +8,7 @@ from conlog.datatypes import (
     Subtraction,
     Terminal,
 )
+from conlog.elegant import determine_variable_bounds_multipass
 from conlog.evaluator import evaluate
 from dataclasses import dataclass
 import networkx as nx
@@ -42,12 +43,17 @@ def compute_new_values_from_node(node, values, reverse=True):
     return new_values
 
 
-def compute_successor_states(current_state):
+def compute_successor_states(current_state: SearchState, bounds : dict | None = None) -> list[SearchState]:
+    bounds = dict() if bounds is None else bounds
+
     if isinstance(current_state.node.op, Terminal) and current_state.last_node is not None:
         return []  # Terminals terminate the search.
 
     successor_states = []
     successor_values = compute_new_values_from_node(current_state.node, current_state.values, reverse=True)
+    if any(successor_values[var] < bounds[var][0] for var in bounds) or \
+         any(successor_values[var] > bounds[var][1] for var in bounds):
+        return []  # Search optimization: bounds violation
     for successor_node in current_state.graph.neighbors(current_state.node):
         if successor_node == current_state.last_node:
             continue  # No backtracking allowed
@@ -64,6 +70,8 @@ def compute_successor_states(current_state):
 def solve_graph_bfs(graph: nx.Graph, limit = None):
     if limit is None:
         limit = 65536
+
+    bounds = determine_variable_bounds_multipass(graph)
 
     # Get key nodes and variables
     initial_node = next(node for node in graph.nodes if isinstance(node.op, Initial))
@@ -93,7 +101,7 @@ def solve_graph_bfs(graph: nx.Graph, limit = None):
 
             return current_state, final_path
 
-        for successor_state in compute_successor_states(current_state):
+        for successor_state in compute_successor_states(current_state, bounds=bounds):
             queue.append([successor_state, [current_state, history]])
 
     return None
