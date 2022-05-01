@@ -422,16 +422,29 @@ class TextProgram(Program):
 #   path        contiguous characters that connect nodes
 
 class GridError:
-    def __init__(self, msg, line, column):
-        self.msg    = msg
-        self.line   = line
-        self.column = column
+    def __init__(self, msg, row, column):
+        self.message = msg
+        self.row     = row
+        self.column  = column
 
     def __repr__(self):
-        pass
+        return f"\x1B[91merror\x1B[39m: {self.message}"
 
-    def show(self, grid):
-        pass
+    def show(self, grid=None):
+        print(f"\x1B[91merror\x1B[39m: {self.message}", end='')
+        if self.row is not None and self.column is not None:
+            print(f"\x1B[2m at row {self.row} column {self.column}\x1B[22m")
+            for line in grid[:self.row]:
+                print(line)
+            line = grid[self.row]
+            print(line[:self.column], end='')
+            print(f"\x1B[91;1m{line[self.column]}\x1B[39;22m", end='')
+            print(line[self.column+1:], end='')
+            print()
+            for line in grid[self.row+1:]:
+                print(line)
+        else:
+            print()
 
 
 def convert_to_grid(text):
@@ -632,14 +645,10 @@ class GridProgram(Program):
         pass
 
 
-def process_text(text):
+def make_grid_program(grid):
     """
     Returns instance of GridError or GridProgram.
     """
-    grid = convert_to_grid(text)
-    if isinstance(grid, GridError):
-        return grid
-
     result = scan_regions(grid)
     if isinstance(result, GridError):
         return result
@@ -688,9 +697,7 @@ def process_text(text):
         canonical = tuple(sorted((fst_name, snd_name)))
         program.edges.add(canonical)
 
-    for line in grid:
-        print(line)
-    program.show('nodes')
+    return program
 
 
 test = """
@@ -707,4 +714,11 @@ test = """
 
 """
 
-process_text(test)
+grid = convert_to_grid(test)
+if isinstance(grid, GridError):
+    grid.show()
+program = make_grid_program(grid)
+if isinstance(program, GridError):
+    program.show(grid)
+else:
+    program.show('nodes')

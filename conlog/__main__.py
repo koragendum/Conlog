@@ -58,7 +58,11 @@ while True:
 
         graph = program.graph()
         if strategy == 'g':
-            solve_result = solve_graph_bfs(graph, limit=limit)
+            try:
+                solve_result = solve_graph_bfs(graph, limit=limit)
+            except KeyboardInterrupt:
+                print('\rinterrupted')
+                continue
             if solve_result is None:
                 print('unsatisfiable')
                 continue
