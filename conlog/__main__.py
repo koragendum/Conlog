@@ -65,7 +65,7 @@ if (filename := args.inp) is not None:
         exit(0)
 
     if args.interactive:
-        if not args.text:
+        if not is_text_file:
             conversion = TextProgram()
             conversion.variables = program.variables
             conversion.nodes     = program.nodes
