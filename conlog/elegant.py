@@ -20,17 +20,7 @@ from conlog.datatypes import (
 )
 from conlog.directed import make_uturnless
 from conlog.evaluator import evaluate, partial_evaluate
-
-
-def find_initial(g: nx.Graph) -> Initial:
-    for node in g.nodes:
-        match node.op:
-            case Initial():
-                return node.op
-            case _:
-                pass
-
-    raise ValueError("No Initial node ")
+from conlog.monotonicity import compute_monotone_variables, find_initial
 
 
 def determine_monotone_variables(
@@ -160,7 +150,7 @@ def interpret(g: nx.Graph, limit: int | None = None) -> Iterator[Solution]:
     initial = find_initial(g)
     dg = make_uturnless(g)
 
-    monotone_inc, monotone_dec = determine_monotone_variables(g, initial)
+    monotone_inc, monotone_dec = compute_monotone_variables(g)
     queue = deque()
     for edge in find_initial_edges(dg):
         queue.append([edge])
