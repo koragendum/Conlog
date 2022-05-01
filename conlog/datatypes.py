@@ -57,7 +57,11 @@ class Solution:
     stdout: list[str]
 
 
-def make_graph(edges: Iterable[tuple[Node, Node]], g: nx.Graph = nx.Graph()) -> nx.Graph:
+def make_graph(edges: Iterable[tuple[Node, Node]]) -> nx.Graph:
+    g = nx.Graph()
     g.add_edges_from(edges)
-
     return g
+
+
+def add_edges_to_graph(edges: Iterable[tuple[Node, Node]], g: nx.Graph) -> None:
+    g.add_edges_from(edges)
