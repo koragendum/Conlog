@@ -6,7 +6,6 @@ from conlog.plot      import plot_graph
 from conlog.solver    import solve_graph_bfs
 
 AUTO_SEMICOLON  = True
-REPL_DFLT_LIMIT = 65536
 
 #~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
 # Read from file
@@ -15,8 +14,12 @@ parser = argparse.ArgumentParser()
 parser.add_argument('inp',        metavar='FILE',     nargs='?',           default=None,  help='conlog file to parse and execute')
 parser.add_argument('--strategy', metavar='STRATEGY', choices=('g', 'p'),  default='p',   help='strategy to use')
 parser.add_argument('--limit',    metavar='N',        type=int,            default=None,  help='search limit')
+parser.add_argument('--interactive', '-i',            action='store_true', default=False, help='load graph then start interactive session')
 # parser.add_argument('--text',     '-t',               action='store_true', default=False, help='interpret file as text rather than grid')
 args = parser.parse_args()
+
+strategy = args.strategy
+limit = 65536 if args.limit is None else args.limit
 
 if (filename := args.inp) is not None:
 
@@ -35,48 +38,60 @@ if (filename := args.inp) is not None:
         program.show(grid)
         exit(1)
 
-    graph = program.graph()
+    if args.interactive:
+        conversion = TextProgram()
 
-    try:
-        if args.strategy == 'g':
-            solve_result = solve_graph_bfs(graph, args.limit)
-            if solve_result is None:
-                print("\x1B[91munsatisfiable\x1B[39m")
-                exit(0)
-            answer, path = solve_result
-            solution = evaluate([x.node for x in path], answer.values)
-        if args.strategy == 'p':
-            interpreter = interpret(graph)
-            try:
-                solution = next(interpreter)
-            except StopIteration:
-                print("\x1B[91munsatisfiable\x1B[39m")
-                exit(0)
-    except KeyboardInterrupt:
-        print('\rinterrupted')
-        exit(1)
+        conversion.variables = program.variables
+        conversion.nodes     = program.nodes
+        conversion.edges     = program.edges
 
-    for (name, value) in solution.assignment.items():
-        if program.variables[name] in ('free', None):
-            print(f"\x1B[95m{name}\x1B[39m = \x1B[95m{value}\x1B[39m")
-    last_emitted = None
-    for out in solution.stdout:
-        if isinstance(out, str):
-            if last_emitted is None or last_emitted == 'character':
-                print(out, end='')
+        program = conversion
+
+    else:
+        graph = program.graph()
+        try:
+            if args.strategy == 'g':
+                solve_result = solve_graph_bfs(graph, args.limit)
+                if solve_result is None:
+                    print("\x1B[91munsatisfiable\x1B[39m")
+                    exit(0)
+                answer, path = solve_result
+                solution = evaluate([x.node for x in path], answer.values)
+            if args.strategy == 'p':
+                interpreter = interpret(graph)
+                try:
+                    solution = next(interpreter)
+                except StopIteration:
+                    print("\x1B[91munsatisfiable\x1B[39m")
+                    exit(0)
+        except KeyboardInterrupt:
+            print('\rinterrupted')
+            exit(1)
+
+        for (name, value) in solution.assignment.items():
+            if program.variables[name] in ('free', None):
+                print(f"\x1B[95m{name}\x1B[39m = \x1B[95m{value}\x1B[39m")
+        last_emitted = None
+        for out in solution.stdout:
+            if isinstance(out, str):
+                if last_emitted is None or last_emitted == 'character':
+                    print(out, end='')
+                else:
+                    print(' ' + out, end='')
+                last_emitted = 'character'
             else:
-                print(' ' + out, end='')
-            last_emitted = 'character'
-        else:
-            if last_emitted is None:
-                print(str(out), end='')
-            else:
-                print(' ' + str(out), end='')
-            last_emitted = 'numeric'
-    if len(solution.stdout) > 0:
-        print()
+                if last_emitted is None:
+                    print(str(out), end='')
+                else:
+                    print(' ' + str(out), end='')
+                last_emitted = 'numeric'
+        if len(solution.stdout) > 0:
+            print()
 
-    exit(0)
+        exit(0)
+
+else:
+    program = TextProgram()
 
 #~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
 # Interactive prompt
@@ -100,9 +115,6 @@ def prompt():
     return line + '\n'
 
 stream = TokenStream("", prompt)
-program = TextProgram()
-strategy = args.strategy
-limit = REPL_DFLT_LIMIT if args.limit is None else args.limit
 
 while True:
     seq = stream.readline()
