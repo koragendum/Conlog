@@ -86,7 +86,7 @@ while True:
             if strategy == 'g':
                 solve_result = solve_graph_bfs(graph, limit=limit)
                 if solve_result is None:
-                    print('unsatisfiable')
+                    print("\x1B[91munsatisfiable\x1B[39m")
                     continue
                 answer, path = solve_result
                 solution = evaluate([x.node for x in path], answer.values)
