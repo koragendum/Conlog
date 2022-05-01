@@ -666,7 +666,7 @@ class GridProgram(Program):
         self.final   = None
 
     def add_node(self, region_id, row, column, text):
-        node_name = f"user.{region_id}"
+        node_name = f"node.{region_id}"
         text = text.strip()
 
         if text.lower() in ('initial', 'init', 'start'):
@@ -824,8 +824,8 @@ def make_grid_program(grid):
             return GridError(f"malformed path ({path_id})", None, None)
 
         fst, snd = tuple(path)
-        fst_name = f"user.{fst}" if fst in regions else f"anon.{fst}"
-        snd_name = f"user.{snd}" if snd in regions else f"anon.{snd}"
+        fst_name = f"node.{fst}" if fst in regions else f"anon.{fst}"
+        snd_name = f"node.{snd}" if snd in regions else f"anon.{snd}"
         if fst_name == program.initial:
             fst_name = 'initial'
         if fst_name == program.final:
