@@ -80,12 +80,6 @@ def interpret(g: nx.Graph) -> Iterator[Solution]:
     while queue:
         history = queue.popleft()
 
-        # print("----------------")
-        # names = []
-        # for x in history:
-        #     names.append(f"({x[0].name}, {x[1].name})")
-        #     print(" -> ".join(names))
-
         u, v = history[-1]
         if isinstance(v.op, Terminal):
             path = make_candidate_solution(history)
