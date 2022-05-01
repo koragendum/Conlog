@@ -1,4 +1,4 @@
-from conlog.solver_astar import solve_graph_bfs
+from conlog.solver import solve_graph_bfs
 from conlog.datatypes import (
     make_graph,
     Initial,

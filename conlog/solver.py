@@ -1,6 +1,8 @@
 from __future__ import annotations
 from conlog.datatypes import (
     Addition,
+    ConditionalDecrement,
+    ConditionalIncrement,
     Function,
     Initial,
     Node,
@@ -22,15 +24,18 @@ class SearchState():
 def compute_new_values_from_node(node, values, reverse=True):
     new_values = dict(values)
 
-    if isinstance(node.op, (Addition, Subtraction)):
+    if isinstance(node.op, (Addition, Subtraction, ConditionalIncrement, ConditionalDecrement)):
         if isinstance(node.op.rhs, int):
             rhs = node.op.rhs
         else:
             rhs = new_values[node.op.rhs]
 
         sign = -1 if reverse else 1
-        if isinstance(node.op, Subtraction):
+        if isinstance(node.op, (Subtraction, ConditionalDecrement)):
             sign *= -1
+
+        if isinstance(node.op, (ConditionalIncrement, ConditionalDecrement)) and rhs > 0:
+            sign = 0  # Do nothing if condition not satisfied
 
         new_values[node.op.lhs] += sign * rhs
 

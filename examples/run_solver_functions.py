@@ -1,4 +1,4 @@
-from conlog.solver_astar import solve_graph_bfs
+from conlog.solver import solve_graph_bfs
 from conlog.datatypes import (
     add_edges_to_graph,
     Addition,
