@@ -12,6 +12,84 @@ from conlog.datatypes import (
 DISALLOW_SELF_MUTATION = True
 
 #~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+
+class Program:
+    def __init__(self):
+        self.variables = dict() # name -> initial value
+        self.nodes     = dict() # name -> None | (lhs, op, rhs)
+        self.edges     = set()  # (name, name)
+
+    def show(self, query=None):
+        if query is None:
+            names = sorted(set(self.variables.keys()) | set(self.nodes.keys()))
+        elif query == 'vars':
+            names = sorted(self.variables.keys())
+        elif query == 'nodes':
+            names = sorted(self.nodes.keys())
+        elif isinstance(query, (list, tuple)):
+            names = query
+        else:
+            names = [query]
+
+        for name in names:
+            if query != 'nodes' and name in self.variables:
+                status = self.variables[name]
+                if status is None:
+                    print(f"\x1B[95m{name}\x1B[39m uninitialized")
+                else:
+                    print(f"\x1B[95m{name}\x1B[39m = \x1B[95m{status}\x1B[39m")
+            if query != 'vars' and name in self.nodes:
+                operation = self.nodes[name]
+                if operation is None:
+                    print(f"\x1B[94m{name}\x1B[39m", end='')
+                else:
+                    lhs, op, rhs = operation
+                    desc = f"\x1B[95m{lhs}\x1B[39m{op}\x1B[95m{rhs}\x1B[39m"
+                    print(f"\x1B[94m{name}\x1B[39m [{desc}]", end='')
+                left_adjuncts  = [edge[0] for edge in self.edges if edge[1] == name]
+                right_adjuncts = [edge[1] for edge in self.edges if edge[0] == name]
+                adjuncts = sorted(left_adjuncts + right_adjuncts)
+                if len(adjuncts) > 0:
+                    print(' --', ', '.join(f"\x1B[94m{a}\x1B[39m" for a in adjuncts), end='')
+                print()
+
+    def uninitialized(self) -> list[str]:
+        return sorted(name for (name, constraint) in self.variables.items() if constraint is None)
+
+    def graph(self):
+        """
+        Assumes initial and final nodes exist and that all variables are initialized.
+        """
+        graph_nodes = {}
+        for (name, operation) in self.nodes.items():
+            match name:
+                case 'initial':
+                    free = tuple(name for (name, constraint) in self.variables.items() if constraint is None or constraint == 'free')
+                    fixed = tuple(var for var in self.variables.items() if isinstance(var[1], int))
+                    graph_nodes[name] = Node('initial', Initial(free=free, fixed=fixed))
+                case 'final':
+                    graph_nodes[name] = Node('final', Terminal())
+                case _:
+                    if operation is None:
+                        graph_nodes[name] = Node(name, None)
+                    else:
+                        lhs, op, rhs = operation
+                        match op:
+                            case '+=':
+                                graph_op = Addition(lhs, rhs)
+                            case '-=':
+                                graph_op = Subtraction(lhs, rhs)
+                            case '++?':
+                                graph_op = ConditionalIncrement(lhs, rhs)
+                            case _:
+                                raise Exception(f"unknown operation {op}")
+                        graph_nodes[name] = Node(name, graph_op)
+
+        graph = networkx.Graph()
+        graph.add_edges_from([(graph_nodes[n1], graph_nodes[n2]) for (n1, n2) in self.edges])
+        return graph
+
+#~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
 # Text frontend (similar to DOT)
 #
 #   node = node-name ("[" var-name ("+=" | "-=") (var-name | const) "]")?
@@ -213,48 +291,7 @@ class TokenStream:
             buf.append(tok)
 
 
-class TextProgram:
-    def __init__(self):
-        self.variables = dict() # name -> initial value
-        self.nodes     = dict() # name -> operation
-        self.edges     = set()  # (name, name)
-
-
-    def show(self, query=None):
-        if query is None:
-            names = sorted(set(self.variables.keys()) | set(self.nodes.keys()))
-        elif query == 'vars':
-            names = sorted(self.variables.keys())
-        elif query == 'nodes':
-            names = sorted(self.nodes.keys())
-        elif isinstance(query, (list, tuple)):
-            names = query
-        else:
-            names = [query]
-
-        for name in names:
-            if query != 'nodes' and name in self.variables:
-                status = self.variables[name]
-                if status is None:
-                    print(f"\x1B[95m{name}\x1B[39m uninitialized")
-                else:
-                    print(f"\x1B[95m{name}\x1B[39m = \x1B[95m{status}\x1B[39m")
-            if query != 'vars' and name in self.nodes:
-                operation = self.nodes[name]
-                if operation is None:
-                    print(f"\x1B[94m{name}\x1B[39m", end='')
-                else:
-                    lhs, op, rhs = operation
-                    desc = f"\x1B[95m{lhs}\x1B[39m{op}\x1B[95m{rhs}\x1B[39m"
-                    print(f"\x1B[94m{name}\x1B[39m [{desc}]", end='')
-                left_adjuncts  = [edge[0] for edge in self.edges if edge[1] == name]
-                right_adjuncts = [edge[1] for edge in self.edges if edge[0] == name]
-                adjuncts = sorted(left_adjuncts + right_adjuncts)
-                if len(adjuncts) > 0:
-                    print(' --', ', '.join(f"\x1B[94m{a}\x1B[39m" for a in adjuncts), end='')
-                print()
-
-
+class TextProgram(Program):
     def add_node(self, seq):
         """
         Returns (number of tokens consumed, node name) or instance of FrontendError.
@@ -273,9 +310,6 @@ class TextProgram:
         if len(seq) < 6:
             return FrontendError("incomplete node definition", seq)
 
-        if node_name in ('initial', 'final'):
-            return FrontendError("cannot define node operation for initial or final", seq[0])
-
         if seq[2].kind != 'name':
             return FrontendError("expected variable name", seq[2])
 
@@ -290,6 +324,9 @@ class TextProgram:
 
         if not (seq[5].kind == 'symbol' and seq[5].value == ']'):
             return FrontendError("expected a closing bracket", seq[5])
+
+        if node_name in ('initial', 'final'):
+            return FrontendError("cannot define node operation for initial or final", seq[1:6])
 
         if node_name in self.nodes and self.nodes[node_name] is not None:
             return FrontendError("node operation has already been defined", seq[1:6])
@@ -316,7 +353,6 @@ class TextProgram:
         op = seq[3].value
         self.nodes[node_name] = (lhs, op, rhs)
         return (6, node_name)
-
 
     def add_statement(self, seq, allow_reinit=False) -> None:
         """
@@ -374,44 +410,301 @@ class TextProgram:
                 return FrontendError("expected edge", seq[index])
             index += 1
 
-    def uninitialized(self) -> list[str]:
-        return sorted(name for (name, constraint) in self.variables.items() if constraint is None)
-
-    def graph(self):
-        """
-        Assumes initial and final nodes exist and that all variables are initialized.
-        """
-        graph_nodes = {}
-        for (name, operation) in self.nodes.items():
-            match name:
-                case 'initial':
-                    free = tuple(name for (name, constraint) in self.variables.items() if constraint is None or constraint == 'free')
-                    fixed = tuple(var for var in self.variables.items() if isinstance(var[1], int))
-                    graph_nodes[name] = Node('initial', Initial(free=free, fixed=fixed))
-                case 'final':
-                    graph_nodes[name] = Node('final', Terminal())
-                case _:
-                    if operation is None:
-                        graph_nodes[name] = Node(name, None)
-                    else:
-                        lhs, op, rhs = operation
-                        match op:
-                            case '+=':
-                                graph_op = Addition(lhs, rhs)
-                            case '-=':
-                                graph_op = Subtraction(lhs, rhs)
-                            case '++?':
-                                graph_op = ConditionalIncrement(lhs, rhs)
-                            case _:
-                                raise Exception(f"unknown operation {op}")
-                        graph_nodes[name] = Node(name, graph_op)
-
-        graph = networkx.Graph()
-        graph.add_edges_from([(graph_nodes[n1], graph_nodes[n2]) for (n1, n2) in self.edges])
-        return graph
-
 
 #~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
 # ASCII graph frontend
-#
-# TODO
+
+# Terminology:
+#   grid        list of strings             (each string is a line of text)
+#   cells       list of list of None|int    (maps row+column to ID)
+#   region      area of text to be parsed   (i.e. nodes and constraints)
+#   junction    location where an anonymous node will be placed
+#   path        contiguous characters that connect nodes
+
+class GridError:
+    def __init__(self, msg, line, column):
+        self.msg    = msg
+        self.line   = line
+        self.column = column
+
+    def __repr__(self):
+        pass
+
+    def show(self, grid):
+        pass
+
+
+def convert_to_grid(text):
+    """
+    Returns GridError or a grid.
+    """
+    lines = text.split('\n')
+
+    nonempty = []
+    margin = float('inf')
+    for line in lines:
+        flush_len = len(line.lstrip())
+        if flush_len == 0:
+            nonempty.append(False)
+            continue
+        nonempty.append(True)
+        indent = len(line) - flush_len
+        margin = min(margin, indent)
+
+    if True not in nonempty:
+        return GridError("empty text", None, None)
+
+    start = nonempty.index(True)
+    stop  = len(nonempty) - nonempty[::-1].index(True)
+    lines = lines[start:stop]
+
+    if margin == float('inf'):
+        raise Exception('infinite margin')
+
+    width = 0
+    for x in range(len(lines)):
+        fixed = lines[x][margin:].rstrip()
+        width = max(width, len(fixed))
+        lines[x] = fixed
+
+    return [line.ljust(width, ' ') for line in lines]
+
+
+def scan_regions(grid):
+    """
+    Returns GridError or (next region number, dict of regions, cells).
+    """
+    width = len(grid[0])
+    height = len(grid)
+
+    cells = [[None]*width for _ in range(height)]
+    regions = dict()
+
+    region_count = 0
+
+    row = 0
+    for line in grid:
+        start = 0
+        while True:
+            try:
+                left_paren = line.index('(', start)
+            except ValueError:
+                left_paren = None
+
+            try:
+                left_bracket = line.index('[', start)
+            except ValueError:
+                left_bracket = None
+
+            if left_paren is None and left_bracket is None:
+                break
+            if left_paren is not None and left_bracket is None:
+                bracket = False
+                left = left_paren
+            if left_paren is None and left_bracket is not None:
+                bracket = True
+                left = left_bracket
+            if left_paren is not None and left_bracket is not None:
+                if left_bracket < left_paren:
+                    bracket = True
+                    left = left_bracket
+                else:
+                    bracket = False
+                    left = left_paren
+
+            try:
+                right = line.index(']' if bracket else ')', left)
+            except ValueError:
+                return GridError("missing matching delimiter", row, left)
+            for column in range(left, right+1):
+                cells[row][column] = region_count
+            regions[region_count] = (row, left, right-left+1)
+            region_count += 1
+            start = right
+
+        row += 1
+
+    return (region_count, regions, cells)
+
+
+def scan_junctions(grid, cells, init_junction_num):
+    """
+    Modifies cells, return (next junction number, dict of junctions).
+    """
+    width  = len(grid[0])
+    height = len(grid)
+    junction_num = init_junction_num
+    junctions = dict()
+    for row in range(height):
+        for column in range(width):
+            if grid[row][column] == ' ' or cells[row][column] is not None:
+                continue
+            flux = 0
+            for dr in (-1, +1):
+                adj = row + dr
+                if height > adj >= 0:
+                    grid_val = grid[adj][column]
+                    cell_val = cells[adj][column]
+                    if grid_val != ' ' and (cell_val is None or cell_val >= init_junction_num):
+                        flux += 1
+            for dc in (-1, +1):
+                adj = column + dc
+                if width > adj >= 0:
+                    grid_val = grid[row][adj]
+                    cell_val = cells[row][adj]
+                    if grid_val != ' ' and (cell_val is None or cell_val >= init_junction_num):
+                        flux += 1
+            if flux >= 3:
+                cells[row][column] = junction_num
+                junctions[junction_num] = (row, column)
+                junction_num += 1
+
+    return (junction_num, junctions)
+
+
+
+def flood_path(grid, cells, neighbors, path_num, row, column):
+    """
+    Modifies cells and neighbors.
+    """
+    if grid[row][column] == ' ':
+        return
+    if (neighbor := cells[row][column]) is not None:
+        if neighbor != path_num:
+            neighbors.add(neighbor)
+        return
+    cells[row][column] = path_num
+    width  = len(grid[0])
+    height = len(grid)
+    for dr in (-1, +1):
+        adj = row + dr
+        if height > adj >= 0:
+            flood_path(grid, cells, neighbors, path_num, adj, column)
+    for dc in (-1, +1):
+        adj = column + dc
+        if width > adj >= 0:
+            flood_path(grid, cells, neighbors, path_num, row, adj)
+
+
+def scan_paths(grid, cells, init_path_num):
+    """
+    Modifies cells, returns (next path number, dict of paths)
+    """
+    width  = len(grid[0])
+    height = len(grid)
+    path_num = init_path_num
+    paths = dict()
+    for row in range(height):
+        for column in range(width):
+            if grid[row][column] != ' ' and cells[row][column] is None:
+                neighbors = set()
+                flood_path(grid, cells, neighbors, path_num, row, column)
+                paths[path_num] = neighbors
+                path_num += 1
+    return (path_num, paths)
+
+
+class GridProgram(Program):
+    def __init__(self):
+        super().__init__()
+        self.initial = None
+        self.final   = None
+
+    def add_node(self, region_id, row, column, text):
+        node_name = f"user.{region_id}"
+        text = text.strip()
+
+        if text.lower() in ('initial', 'init', 'start'):
+            self.initial = node_name
+            self.nodes['initial'] = None
+            return
+
+        if text.lower() in ('final', 'fin', 'end', 'terminal'):
+            self.final = node_name
+            self.nodes['final'] = None
+            return
+
+        # var op var|const
+        self.nodes[node_name] = None
+
+    def add_constraint(self, region_id, row, column, text):
+        # var = const
+        pass
+
+
+def process_text(text):
+    """
+    Returns instance of GridError or GridProgram.
+    """
+    grid = convert_to_grid(text)
+    if isinstance(grid, GridError):
+        return grid
+
+    result = scan_regions(grid)
+    if isinstance(result, GridError):
+        return result
+    next_id, regions, cells = result
+
+    next_id = max(next_id, 100)     # to make debugging easier
+    next_id, junctions = scan_junctions(grid, cells, next_id)
+
+    next_id = max(next_id, 200)     # to make debugging easier
+    next_id, paths = scan_paths(grid, cells, next_id)
+
+    program = GridProgram()
+
+    for (region_id, region) in regions.items():
+        row, column, length = region
+        is_constraint = (grid[row][column] == '[')
+        inner = grid[row][column+1:column+length-1]
+        if is_constraint:
+            status = program.add_constraint(region_id, row, column, inner)
+        else:
+            status = program.add_node(region_id, row, column, inner)
+        if isinstance(status, GridError):
+            return status
+
+    for (junction_id, junction) in junctions.items():
+        row, column = junction
+        program.nodes[f"anon.{junction_id}"] = None
+
+    for (path_id, path) in paths.items():
+        if len(path) < 2:
+            continue
+        if len(path) > 2:
+            return GridError(f"malformed path ({path_id})", None, None)
+
+        fst, snd = tuple(path)
+        fst_name = f"user.{fst}" if fst in regions else f"anon.{fst}"
+        snd_name = f"user.{snd}" if snd in regions else f"anon.{snd}"
+        if fst_name == program.initial:
+            fst_name = 'initial'
+        if fst_name == program.final:
+            fst_name = 'final'
+        if snd_name == program.initial:
+            snd_name = 'initial'
+        if snd_name == program.final:
+            snd_name = 'final'
+        canonical = tuple(sorted((fst_name, snd_name)))
+        program.edges.add(canonical)
+
+    for line in grid:
+        print(line)
+    program.show('nodes')
+
+
+test = """
+
+  
+    (Start)----#################---(End)
+               |               |
+               |               |
+            (n-=1)             |
+               |               |   [T=36]
+               +-----(T-=n)----+
+
+    
+
+"""
+
+process_text(test)
