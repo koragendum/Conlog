@@ -96,13 +96,32 @@ while True:
         except KeyboardInterrupt:
             print('\rinterrupted')
             continue
+
+        print("\x1B[92msatisfiable\x1B[39m")
         for (name, value) in solution.assignment.items():
             if program.variables[name] in ('free', None):
                 print(f"\x1B[95m{name}\x1B[39m = \x1B[95m{value}\x1B[39m")
-        nodes = [f"\x1B[94m{node.name}\x1B[39m" for node in solution.path]
-        if len(nodes) > 15:
-            nodes = nodes[:7] + ["..."] + nodes[-7:]
-        print(' -- '.join(nodes))
+        last_emitted = None
+        for out in solution.stdout:
+            if isinstance(out, str):
+                if last_emitted is None or last_emitted == 'character':
+                    print(out, end='')
+                else:
+                    print(' ' + out, end='')
+                last_emitted = 'character'
+            else:
+                if last_emitted is None:
+                    print(str(out), end='')
+                else:
+                    print(' ' + str(out), end='')
+                last_emitted = 'numeric'
+        print()
+
+        # Uncomment to print the path
+        # nodes = [f"\x1B[94m{node.name}\x1B[39m" for node in solution.path]
+        # if len(nodes) > 15:
+        #     nodes = nodes[:7] + ["..."] + nodes[-7:]
+        # print(' -- '.join(nodes))
 
     if is_command and seq[0].value == 'help':
         print("strategy            print the current strategy")

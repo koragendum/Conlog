@@ -6,6 +6,8 @@ from conlog.datatypes import (
     Addition,
     Subtraction,
     ConditionalIncrement,
+    IntegerPrint,
+    UnicodePrint,
     Node,
 )
 
@@ -44,7 +46,10 @@ class Program:
                     print(f"\x1B[94m{name}\x1B[39m", end='')
                 else:
                     lhs, op, rhs = operation
-                    desc = f"\x1B[95m{lhs}\x1B[39m{op}\x1B[95m{rhs}\x1B[39m"
+                    if op in ('intpr', 'unipr'):
+                        desc = f"{op}=\x1B[95m{lhs}\x1B[39m"
+                    else:
+                        desc = f"\x1B[95m{lhs}\x1B[39m{op}\x1B[95m{rhs}\x1B[39m"
                     print(f"\x1B[94m{name}\x1B[39m [{desc}]", end='')
                 left_adjuncts  = [edge[0] for edge in self.edges if edge[1] == name]
                 right_adjuncts = [edge[1] for edge in self.edges if edge[0] == name]
@@ -81,6 +86,10 @@ class Program:
                                 graph_op = Subtraction(lhs, rhs)
                             case '++?':
                                 graph_op = ConditionalIncrement(lhs, rhs)
+                            case 'intpr':
+                                graph_op = IntegerPrint(lhs)
+                            case 'unipr':
+                                graph_op = UnicodePrint(lhs)
                             case _:
                                 raise Exception(f"unknown operation {op}")
                         graph_nodes[name] = Node(name, graph_op)
@@ -93,7 +102,7 @@ class Program:
 # Text frontend (similar to DOT)
 #
 #   node = node-name ("[" var-name ("+=" | "-=") (var-name | const) "]")?
-#        | node-name "[" "print" "]"
+#        | node-name "[" ("intpr"|"unipr") "=" (var-name | const) "]"
 #
 #   statement = var-name "=" (const | "?")
 #             | node ("--" node)+
@@ -310,6 +319,38 @@ class TextProgram(Program):
         if len(seq) < 6:
             return FrontendError("incomplete node definition", seq)
 
+        # Print node
+        if seq[2].kind == 'name' and seq[2].value in ('intpr', 'unipr'):
+            if not (seq[3].kind == 'symbol' and seq[3].value == '='):
+                return FrontendError(f"expected '=' after '{seq[2].value}'", seq[3])
+
+            if seq[4].kind not in ('numeric', 'character', 'name'):
+                return FrontendError("expected literal or variable name", seq[4])
+
+            if not (seq[5].kind == 'symbol' and seq[5].value == ']'):
+                return FrontendError("expected a closing bracket", seq[5])
+
+            if node_name in ('initial', 'final'):
+                return FrontendError("cannot define node operation for initial or final", seq[1:6])
+
+            if node_name in self.nodes and self.nodes[node_name] is not None:
+                return FrontendError("node operation has already been defined", seq[1:6])
+
+            if seq[4].kind == 'name':
+                if seq[4].value not in self.variables:
+                    self.variables[seq[4].value] = None
+
+            if seq[4].kind == 'character':
+                lhs = ord(seq[4].value)
+            else:
+                lhs = seq[4].value
+
+            op = seq[2].value
+            self.nodes[node_name] = (lhs, op, None)
+            return (6, node_name)
+
+
+        # Non-print node
         if seq[2].kind != 'name':
             return FrontendError("expected variable name", seq[2])
 
@@ -339,13 +380,10 @@ class TextProgram(Program):
             self.variables[lhs] = None
 
         if seq[4].kind == 'name':
-            rhs_name = seq[4].value
-            if rhs_name not in self.variables:
-                self.variables[rhs_name] = None
+            if seq[4].value not in self.variables:
+                self.variables[seq[4].value] = None
 
-        if seq[4].kind == 'numeric':
-            rhs = seq[4].value
-        elif seq[4].kind == 'character':
+        if seq[4].kind == 'character':
             rhs = ord(seq[4].value)
         else:
             rhs = seq[4].value
@@ -693,7 +731,7 @@ class GridProgram(Program):
         text = text[match.end():].lstrip()
 
         if text[0] != '=':
-            return GridError("expected equality after variable name", row, column)
+            return GridError("expected '=' after variable name", row, column)
 
         text = text[1:].lstrip()
 
@@ -775,6 +813,6 @@ def make_grid_program(grid):
 
 """
 TODO
-- load from file
 - print nodes
+- load from file
 """

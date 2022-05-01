@@ -28,9 +28,9 @@ def partial_evaluate(path: list[Node], assignment: dict[str, int]) -> tuple[dict
                 pass
             case IntegerPrint(var=var):
                 if isinstance(var, int):
-                    prints.append(str(var))
+                    prints.append(var)
                 else:
-                    prints.append(str(var_values[var]))
+                    prints.append(var_values[var])
             case UnicodePrint(var=var):
                 if isinstance(var, int):
                     prints.append(chr(var))
