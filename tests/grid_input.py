@@ -30,6 +30,13 @@ program.show('nodes')
 print('\x1B[1mVariables\x1B[22m')
 program.show('vars')
 
+if program.initial is None or program.final is None:
+    if program.initial is None:
+        print('missing initial node')
+    if program.final is None:
+        print('missing final node')
+    exit()
+
 graph = program.graph()
 solve_result = solve_graph_bfs(graph)
 if solve_result is None:

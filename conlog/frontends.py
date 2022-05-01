@@ -632,11 +632,15 @@ class GridProgram(Program):
         text = text.strip()
 
         if text.lower() in ('initial', 'init', 'start'):
+            if self.initial is not None:
+                return GridError("initial node already exists", row, column)
             self.initial = node_name
             self.nodes['initial'] = None
             return
 
         if text.lower() in ('final', 'fin', 'end', 'terminal'):
+            if self.final is not None:
+                return GridError("final node already exists", row, column)
             self.final = node_name
             self.nodes['final'] = None
             return
@@ -773,5 +777,4 @@ def make_grid_program(grid):
 TODO
 - load from file
 - print nodes
-- function / macro support
 """
