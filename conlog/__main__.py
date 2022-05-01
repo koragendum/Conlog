@@ -1,5 +1,5 @@
 import argparse
-from conlog.brute     import interpret
+from conlog.elegant   import interpret
 from conlog.evaluator import evaluate
 from conlog.frontends import convert_to_grid, GridError, FrontendError, make_grid_program, TokenStream, TextProgram
 from conlog.solver    import solve_graph_bfs
@@ -9,44 +9,61 @@ AUTO_SEMICOLON = True
 #~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
 # Read from file
 
-ap = argparse.ArgumentParser()
-ap.add_argument('input_file', metavar='FILE', nargs='?', default=None, help='A graph file to parse and execute')
-args = ap.parse_args()
+parser = argparse.ArgumentParser()
+parser.add_argument('inp',        metavar='FILE',     nargs='?',          default=None, help='graph file to parse and execute')
+parser.add_argument('--strategy', metavar='STRATEGY', choices=('g', 'p'), default='p',  help='strategy to use')
+parser.add_argument('--limit',    metavar='N',        type=int,           default=None, help='search limit')
+args = parser.parse_args()
 
-if args.input_file is not None:
-    grid_file_name = args.input_file
+if (filename := args.inp) is not None:
 
-    if grid_file_name[-4:] not in ('.cl', '.cla', '.clg'):
-        print('Warning! Not a .clg file: %s' % grid_file_name)
+    if not any(filename.endswith(ext) for ext in ('.cl', '.cla', '.clg')):
+        print('\x1B[93mwarning\x1B[39m: not a  file: %s' % grid_file_name)
 
-    grid_text = open(grid_file_name, 'r').read()
+    with open(filename, 'r') as f:
+        text = f.read()
 
-    grid = convert_to_grid(grid_text)
+    grid = convert_to_grid(text)
     if isinstance(grid, GridError):
         grid.show()
+        exit(1)
     program = make_grid_program(grid)
     if isinstance(program, GridError):
         program.show(grid)
-        exit()
-    for line in grid:
-        print(line)
-    print('\x1B[1mNodes\x1B[22m')
-    program.show('nodes')
-    print('\x1B[1mVariables\x1B[22m')
-    program.show('vars')
+        exit(1)
 
     graph = program.graph()
-    solve_result = solve_graph_bfs(graph)
-    if solve_result is None:
-        print('unsatisfiable')
-        exit()
+    if args.strategy == 'g':
+        solve_result = solve_graph_bfs(graph, args.limit)
+        if solve_result is None:
+            print("\x1B[91munsatisfiable\x1B[39m")
+            exit()
+        answer, path = solve_result
+        solution = evaluate([x.node for x in path], answer.values)
 
-    print('\x1B[1mSolution\x1B[22m')
-    answer, path = solve_result
-    solution = evaluate([x.node for x in path], answer.values)
+    if args.strategy == 'p':
+        interpreter = interpret(graph)
+        solution = next(interpreter)
+
     for (name, value) in solution.assignment.items():
         if program.variables[name] in ('free', None):
             print(f"\x1B[95m{name}\x1B[39m = \x1B[95m{value}\x1B[39m")
+    last_emitted = None
+    for out in solution.stdout:
+        if isinstance(out, str):
+            if last_emitted is None or last_emitted == 'character':
+                print(out, end='')
+            else:
+                print(' ' + out, end='')
+            last_emitted = 'character'
+        else:
+            if last_emitted is None:
+                print(str(out), end='')
+            else:
+                print(' ' + str(out), end='')
+            last_emitted = 'numeric'
+    if len(solution.stdout) > 0:
+        print()
 
     exit(0)
 
@@ -59,12 +76,12 @@ def prompt():
         line = input()
     except KeyboardInterrupt:
         print()
-        exit()
+        exit(0)
     except EOFError:
         print('^D')
-        exit()
+        exit(0)
     if line in ['exit', 'quit', ':q']:
-        exit()
+        exit(0)
     if AUTO_SEMICOLON:
         stripped = line.rstrip()
         if len(stripped) > 0 and stripped[-1] != ';':
@@ -157,7 +174,8 @@ while True:
                 else:
                     print(' ' + str(out), end='')
                 last_emitted = 'numeric'
-        print()
+        if len(solution.stdout) > 0:
+            print()
 
         # Uncomment to print the path
         # nodes = [f"\x1B[94m{node.name}\x1B[39m" for node in solution.path]

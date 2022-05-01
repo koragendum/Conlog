@@ -98,7 +98,10 @@ def compute_successor_states(current_state):
     return successor_states
 
 
-def solve_graph_bfs(graph: nx.Graph, limit = 65536):
+def solve_graph_bfs(graph: nx.Graph, limit = None):
+    if limit is None:
+        limit = 65536
+
     # Get key nodes and variables
     initial_node = next(node for node in graph.nodes if isinstance(node.op, Initial))
     terminal_node = next(node for node in graph.nodes if isinstance(node.op, Terminal))

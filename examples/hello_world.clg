@@ -1,9 +1,7 @@
 
-
-  (Init)--(Unipr=72)---(Unipr=101)---(Unipr=108)---(Unipr=108)---(Unipr=111)
-                                                                    |
-          (Unipr=114)---(Unipr=111)---(Unipr=119)---(Unipr=32)---(Unipr=44)
-             |
-          (Unipr=108)---(Unipr=100)---(Unipr=33)---(Terminal)
-
+  (Init)--(Unipr='H)---(Unipr='e)---(Unipr='l)---(Unipr='l)---(Unipr='o)
+                                                                  |
+          (Unipr='r)---(Unipr='o)---(Unipr='w)---(Unipr=32)---(Unipr=',)
+              |
+          (Unipr='l)---(Unipr='d)---(Unipr='!)---(Terminal)
 
