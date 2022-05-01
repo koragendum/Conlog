@@ -76,14 +76,14 @@ if (filename := args.inp) is not None:
         graph = program.graph()
         try:
             if args.strategy == 'g':
-                solve_result = solve_graph_bfs(graph, args.limit)
+                solve_result = solve_graph_bfs(graph, limit=limit)
                 if solve_result is None:
                     print("\x1B[91munsatisfiable\x1B[39m")
                     exit(0)
                 answer, path = solve_result
                 solution = evaluate([x.node for x in path], answer.values)
             if args.strategy == 'p':
-                interpreter = interpret(graph)
+                interpreter = interpret(graph, limit=limit)
                 try:
                     solution = next(interpreter)
                 except StopIteration:
@@ -200,7 +200,7 @@ while True:
                 answer, path = solve_result
                 solution = evaluate([x.node for x in path], answer.values)
             if strategy == 'p':
-                interpreter = interpret(graph)
+                interpreter = interpret(graph, limit=limit)
                 try:
                     solution = next(interpreter)
                 except StopIteration:
