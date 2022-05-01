@@ -115,8 +115,7 @@ while True:
         print("vars                print the definitions of all variables")
         print("nodes               print the definitions of all nodes")
         print("exit|quit           exit the interpreter")
-        print("CTRL-D              exit the interpreter")
-        print("CTRL-C              exit the interpreter or halt the ongoing search")
+        print("CTRL-C              halt the ongoing search")
 
     if is_command and seq[0].value in ('clear', 'reset'):
         program = TextProgram()
