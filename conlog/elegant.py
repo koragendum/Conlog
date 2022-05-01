@@ -41,16 +41,31 @@ def determine_monotone_variables(
 
     all_variables = set(initial.free) | set(x[0] for x in initial.fixed)
 
+    non_monotonic = set()
+
     for node in g.nodes:
         match node.op:
-            case Addition(lhs=lhs):
+            case Addition(lhs=lhs, rhs=rhs):
+                if isinstance(rhs, int) and rhs >= 0:
+                    increments.add(lhs)
+                else:
+                    non_monotonic.add(lhs)
+            case Subtraction(lhs=lhs, rhs=rhs):
+                if isinstance(rhs, int) and rhs >= 0:
+                    decrements.add(lhs)
+                else:
+                    non_monotonic.add(lhs)
+            case ConditionalIncrement(lhs=lhs):
                 increments.add(lhs)
-            case Subtraction(lhs=lhs):
+            case ConditionalDecrement(lhs=lhs):
                 decrements.add(lhs)
             case _:
                 pass
 
-    return all_variables - decrements, all_variables - increments
+    return (
+        all_variables - decrements - non_monotonic,
+        all_variables - increments - non_monotonic,
+    )
 
 
 class FreePoison:
