@@ -55,15 +55,6 @@ class ConditionalDecrement(Operation):
     rhs: str | int
 
 
-@dataclass(frozen=True)
-class Function(Operation):
-    """
-    Deprecated
-    """
-    graph: nx.Graph
-    var_map: tuple[tuple[str, str], ...]
-
-
 @dataclass(frozen=True, order=True)
 class Node:
     name: str
