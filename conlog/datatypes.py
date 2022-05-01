@@ -15,10 +15,16 @@ class Initial(Operation):
     free: tuple[str, ...]
     fixed: tuple[tuple[str, int], ...]
 
+    def __str__(self) -> str:
+        fixed_vars = [f"{x}={y}" for x, y in self.fixed]
+        vars = fixed_vars + list(self.free)
+        return ", ".join(vars)
+
 
 @dataclass(frozen=True, order=True)
 class Terminal(Operation):
-    pass
+    def __str__(self) -> str:
+        return "Terminal"
 
 
 @dataclass(frozen=True, order=True)
@@ -26,15 +32,24 @@ class Addition(Operation):
     lhs: str
     rhs: str | int
 
+    def __str__(self) -> str:
+        return f"{self.lhs}+={self.rhs}"
+
 
 @dataclass(frozen=True, order=True)
 class IntegerPrint(Operation):
     var: str | int
 
+    def __str__(self) -> str:
+        return f"iprint {self.var}"
+
 
 @dataclass(frozen=True, order=True)
 class UnicodePrint(Operation):
     var: str | int
+
+    def __str__(self) -> str:
+        return f"uprint {self.var}"
 
 
 @dataclass(frozen=True, order=True)
@@ -42,17 +57,26 @@ class Subtraction(Operation):
     lhs: str
     rhs: str | int
 
+    def __str__(self) -> str:
+        return f"{self.lhs}+={self.rhs}"
+
 
 @dataclass(frozen=True, order=True)
 class ConditionalIncrement(Operation):
     lhs: str
     rhs: str | int
 
+    def __str__(self) -> str:
+        return f"{self.lhs}++?{self.rhs}"
+
 
 @dataclass(frozen=True, order=True)
 class ConditionalDecrement(Operation):
     lhs: str
     rhs: str | int
+
+    def __str__(self) -> str:
+        return f"{self.lhs}--?{self.rhs}"
 
 
 @dataclass(frozen=True, order=True)
