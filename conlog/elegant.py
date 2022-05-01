@@ -97,6 +97,18 @@ class FreePoison:
     def __rsub__(self, _):
         return self
 
+    def __gt__(self, _):
+        return False
+
+    def __lt__(self, _):
+        return False
+
+    def __ge__(self, _):
+        return False
+
+    def __le__(self, _):
+        return False
+
 
 def bounds_violated(
     path: list[Node],
