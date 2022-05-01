@@ -2,17 +2,20 @@ import argparse
 from conlog.elegant   import interpret
 from conlog.evaluator import evaluate
 from conlog.frontends import convert_to_grid, GridError, FrontendError, make_grid_program, TokenStream, TextProgram
+from conlog.plot      import plot_graph
 from conlog.solver    import solve_graph_bfs
 
-AUTO_SEMICOLON = True
+AUTO_SEMICOLON  = True
+REPL_DFLT_LIMIT = 65536
 
 #~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
 # Read from file
 
 parser = argparse.ArgumentParser()
-parser.add_argument('inp',        metavar='FILE',     nargs='?',          default=None, help='graph file to parse and execute')
-parser.add_argument('--strategy', metavar='STRATEGY', choices=('g', 'p'), default='p',  help='strategy to use')
-parser.add_argument('--limit',    metavar='N',        type=int,           default=None, help='search limit')
+parser.add_argument('inp',        metavar='FILE',     nargs='?',           default=None,  help='conlog file to parse and execute')
+parser.add_argument('--strategy', metavar='STRATEGY', choices=('g', 'p'),  default='p',   help='strategy to use')
+parser.add_argument('--limit',    metavar='N',        type=int,            default=None,  help='search limit')
+# parser.add_argument('--text',     '-t',               action='store_true', default=False, help='interpret file as text rather than grid')
 args = parser.parse_args()
 
 if (filename := args.inp) is not None:
@@ -33,17 +36,25 @@ if (filename := args.inp) is not None:
         exit(1)
 
     graph = program.graph()
-    if args.strategy == 'g':
-        solve_result = solve_graph_bfs(graph, args.limit)
-        if solve_result is None:
-            print("\x1B[91munsatisfiable\x1B[39m")
-            exit()
-        answer, path = solve_result
-        solution = evaluate([x.node for x in path], answer.values)
 
-    if args.strategy == 'p':
-        interpreter = interpret(graph)
-        solution = next(interpreter)
+    try:
+        if args.strategy == 'g':
+            solve_result = solve_graph_bfs(graph, args.limit)
+            if solve_result is None:
+                print("\x1B[91munsatisfiable\x1B[39m")
+                exit(0)
+            answer, path = solve_result
+            solution = evaluate([x.node for x in path], answer.values)
+        if args.strategy == 'p':
+            interpreter = interpret(graph)
+            try:
+                solution = next(interpreter)
+            except StopIteration:
+                print("\x1B[91munsatisfiable\x1B[39m")
+                exit(0)
+    except KeyboardInterrupt:
+        print('\rinterrupted')
+        exit(1)
 
     for (name, value) in solution.assignment.items():
         if program.variables[name] in ('free', None):
@@ -90,8 +101,8 @@ def prompt():
 
 stream = TokenStream("", prompt)
 program = TextProgram()
-strategy = 'g'
-limit = 65536
+strategy = args.strategy
+limit = REPL_DFLT_LIMIT if args.limit is None else args.limit
 
 while True:
     seq = stream.readline()
@@ -151,7 +162,11 @@ while True:
                 solution = evaluate([x.node for x in path], answer.values)
             if strategy == 'p':
                 interpreter = interpret(graph)
-                solution = next(interpreter)
+                try:
+                    solution = next(interpreter)
+                except StopIteration:
+                    print("\x1B[91munsatisfiable\x1B[39m")
+                    continue
         except KeyboardInterrupt:
             print('\rinterrupted')
             continue
@@ -193,8 +208,13 @@ while True:
         print("<name>              print the definition of <name>")
         print("vars                print the definitions of all variables")
         print("nodes               print the definitions of all nodes")
+        print("show|plot           render the current graph")
         print("exit|quit           exit the interpreter")
         print("CTRL-C              halt the ongoing search")
+
+    if is_command and seq[0].value in ('show', 'plot'):
+        plot_graph(program.graph())
+        continue
 
     if is_command and seq[0].value in ('clear', 'reset'):
         program = TextProgram()
