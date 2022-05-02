@@ -126,6 +126,9 @@ class Node:
     name: str
     op: Operation | None
 
+    def __str__(self):
+        return str(self.op)
+
 
 @dataclass(frozen=True)
 class Solution:

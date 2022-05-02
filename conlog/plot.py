@@ -8,7 +8,7 @@ def plot_graph(g: nx.Graph) -> None:
 
     ax = fig.add_subplot(1, 1, 1)
 
-    labels = {node: str(node.op) for node in g.nodes}
+    labels = {node: str(node) for node in g.nodes}
 
     nx.draw_networkx(g, ax=ax, labels=labels, pos=nx.spring_layout(g))
 
