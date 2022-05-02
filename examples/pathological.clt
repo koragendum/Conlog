@@ -1,0 +1,11 @@
+initial--L;
+A[x-=1]--B;
+A--L;
+A--R;
+B[y-=1];
+B--C;
+C--L;
+C--R;
+L--R;
+R--final;
+y=5;
