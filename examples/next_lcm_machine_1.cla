@@ -1,0 +1,52 @@
+
+    [comment__computes_x_the_next_lcm_of_all_the_numbers=0]
+
+
+    (Start)---+
+              |
+              |
+              |
+              |
+              |
+          (dummy+=x)  
+              |       
+              |       
+              |
+              |       
+              |   
+              |    (db++?da)         
+              |      |    |         
+              | (da+=1) (da-=1)         
+              |      |    |            
+              +------+    +--(db++?x)   
+                     |    |     |       
+                  (x-=12) |  (neg_x-=x) 
+                     |    |     |       
+                     +----+ (db++?neg_x)
+                                |       
+                            (neg_x+=x)  
+                                |       
+                                |       
+                                |       
+                                |
+                                |
+                                |
+                                |
+                                |
+                                |
+                                |
+                                |               +-(dummy-=1)------+
+                                |               |                 |
+                                +---(dummy-=41)-+-(da-=1) (da+=1)-+-(da-=1)-(End)
+                                                       |   |
+                                                     (db++?da)
+
+
+
+    [x=?]
+    [dummy=0]
+    [neg_x=0]
+    [da=1]
+    [db=0]
+
+
