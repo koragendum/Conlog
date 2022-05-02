@@ -20,7 +20,11 @@ from conlog.datatypes import (
 )
 from conlog.directed import elide_none_none, make_uturnless
 from conlog.evaluator import evaluate, partial_evaluate
-from conlog.monotonicity import compute_monotone_variables, find_initial
+from conlog.monotonicity import (
+    compute_monotone_variables,
+    find_initial,
+    find_initial_node,
+)
 
 
 def determine_monotone_variables(
@@ -160,6 +164,9 @@ def bounds_violated(
 
 def interpret(g: nx.Graph, limit: int | None = None) -> Iterator[Solution]:
     initial = find_initial(g)
+
+    node_depth = nx.single_source_shortest_path_length(g, find_initial_node(g))
+
     dg = elide_none_none(make_uturnless(g))
 
     monotone_inc, monotone_dec = compute_monotone_variables(g)
@@ -205,8 +212,11 @@ def interpret(g: nx.Graph, limit: int | None = None) -> Iterator[Solution]:
         ):
             continue
 
-        # Explore neighbors
-        for node in dg.neighbors((u, v)):
+        # Explore neighbors, favoring nodes moving closer to the Terminal
+        neighbors = list(dg.neighbors((u, v)))
+        neighbors.sort(key=lambda node: node_depth[node[0]], reverse=True)
+
+        for node in neighbors:
             new_history = list(history)
             new_history.append(node)
             queue.append(new_history)

@@ -7,6 +7,7 @@ from conlog.datatypes import (
     ConditionalDecrement,
     ConditionalIncrement,
     Initial,
+    Node,
     Subtraction,
 )
 
@@ -31,15 +32,19 @@ PositiveTerminal = object()
 NegativeTerminal = object()
 
 
-def find_initial(g: nx.Graph) -> Initial:
+def find_initial_node(g: nx.Graph) -> Node:
     for node in g.nodes:
         match node.op:
             case Initial():
-                return node.op
+                return node
             case _:
                 pass
 
     raise ValueError("No Initial node")
+
+
+def find_initial(g: nx.Graph) -> Initial:
+    return find_initial_node(g).op  # type: ignore
 
 
 def compute_monotone_variables(g: nx.Graph) -> tuple[set[str], set[str]]:
