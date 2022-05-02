@@ -75,19 +75,14 @@ if (filename := args.inp) is not None:
         graph = program.graph()
         try:
             if args.strategy == 'g':
-                solve_result = solve_graph_bfs(graph, limit=limit)
-                if solve_result is None:
-                    print("\x1B[91munsatisfiable\x1B[39m")
-                    exit(0)
-                answer, path = solve_result
-                solution = evaluate([x.node for x in path], answer.values)
+                interpreter = solve_graph_bfs(graph, limit=limit)
             if args.strategy == 'p':
                 interpreter = interpret(graph, limit=limit)
-                try:
-                    solution = next(interpreter)
-                except StopIteration:
-                    print("\x1B[91munsatisfiable\x1B[39m")
-                    exit(0)
+            try:
+                solution = next(interpreter)
+            except StopIteration:
+                print("\x1B[91munsatisfiable\x1B[39m")
+                exit(0)
         except KeyboardInterrupt:
             print('\rinterrupted')
             exit(1)
@@ -192,19 +187,14 @@ while True:
         graph = program.graph()
         try:
             if strategy == 'g':
-                solve_result = solve_graph_bfs(graph, limit=limit)
-                if solve_result is None:
-                    print("\x1B[91munsatisfiable\x1B[39m")
-                    continue
-                answer, path = solve_result
-                solution = evaluate([x.node for x in path], answer.values)
+                interpreter = solve_graph_bfs(graph, limit=limit)
             if strategy == 'p':
                 interpreter = interpret(graph, limit=limit)
-                try:
-                    solution = next(interpreter)
-                except StopIteration:
-                    print("\x1B[91munsatisfiable\x1B[39m")
-                    continue
+            try:
+                solution = next(interpreter)
+            except StopIteration:
+                print("\x1B[91munsatisfiable\x1B[39m")
+                continue
         except KeyboardInterrupt:
             print('\rinterrupted')
             continue
@@ -265,7 +255,7 @@ while True:
         print("limit               print the current search limit")
         print("limit <num>         set the search limit to <num>")
         print("go|search|solve     solve the current graph")
-        print("go|... all          find all solutions (strategy p only)")
+        print("go|... all          find all solutions")
         print("reset|clear         reset the current graph")
         print("<name>              print the definition of <name>")
         print("vars                print the definitions of all variables")

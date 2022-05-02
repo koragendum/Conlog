@@ -91,17 +91,19 @@ def solve_graph_bfs(graph: nx.Graph, limit = None):
         it += 1
         current_state, history = queue.pop(0)
         if current_state.node == initial_node and all(current_state.values[n] == fixed[n] for n in fixed):
+            history_traverser = history
             final_path = [current_state]
-            while history is not None:
-                head, history = history
+            while history_traverser is not None:
+                head, history_traverser = history_traverser
                 final_path.append(head)
 
             # One last check: try evaluator on search result.
-            evaluate([cs.node for cs in final_path], current_state.values)
+            solution = evaluate([cs.node for cs in final_path], current_state.values)
 
-            return current_state, final_path
+            if solution is None:
+                raise Exception('BFS solver thought an invalid solution was valid')
+
+            yield solution
 
         for successor_state in compute_successor_states(current_state, bounds=bounds):
             queue.append([successor_state, [current_state, history]])
-
-    return None
