@@ -1,5 +1,7 @@
+import operator
 from collections import deque
-from typing import Iterator
+from dataclasses import dataclass
+from typing import Callable, Iterator, cast
 
 import networkx as nx
 
@@ -88,30 +90,76 @@ def determine_monotone_variables(
     )
 
 
-class FreePoison:
-    def __add__(self, _):
-        return self
+class _BoundedMixin:
+    def __add__(self, other):
+        return add_bounds(cast(Bound, self), other)
 
-    def __radd__(self, _):
-        return self
+    def __radd__(self, other):
+        return add_bounds(other, cast(Bound, self))
 
-    def __sub__(self, _):
-        return self
+    def __sub__(self, other):
+        return sub_bounds(cast(Bound, self), other)
 
-    def __rsub__(self, _):
-        return self
+    def __rsub__(self, other):
+        return sub_bounds(other, cast(Bound, self))
 
-    def __gt__(self, _):
-        return False
 
-    def __lt__(self, _):
-        return False
+@dataclass(frozen=True)
+class Unknown(_BoundedMixin):
+    pass
 
-    def __ge__(self, _):
-        return False
 
-    def __le__(self, _):
-        return False
+@dataclass(frozen=True)
+class AtLeast(_BoundedMixin):
+    lb: int
+
+
+@dataclass(frozen=True)
+class AtMost(_BoundedMixin):
+    ub: int
+
+
+Bound = int | AtMost | AtLeast | Unknown
+
+
+def add_bounds(x: Bound, y: Bound) -> Bound:
+    match x, y:
+        case int(xx), int(yy):
+            return xx + yy
+        case int(xx), AtLeast(lb=lby):
+            return AtLeast(xx + lby)
+        case int(xx), AtMost(ub=uby):
+            return AtMost(xx + uby)
+        case AtLeast(lb=lbx), int(yy):
+            return AtLeast(lbx + yy)
+        case AtMost(ub=ubx), int(yy):
+            return AtMost(ubx + yy)
+        case AtLeast(lb=lbx), AtLeast(lb=lby):
+            return AtLeast(lbx + lby)
+        case AtMost(ub=ubx), AtMost(ub=uby):
+            return AtMost(ubx + uby)
+        case _:
+            return Unknown()
+
+
+def sub_bounds(x: Bound, y: Bound) -> Bound:
+    match x, y:
+        case int(xx), int(yy):
+            return xx - yy
+        case int(xx), AtLeast(lb=lby):
+            return AtMost(xx - lby)
+        case int(xx), AtMost(ub=uby):
+            return AtLeast(xx - uby)
+        case AtLeast(lb=lbx), int(yy):
+            return AtLeast(lbx - yy)
+        case AtMost(ub=ubx), int(yy):
+            return AtMost(ubx - yy)
+        case AtLeast(lb=lbx), AtMost(ub=lby):
+            return AtLeast(lbx - lby)
+        case AtMost(ub=ubx), AtLeast(lb=lby):
+            return AtMost(ubx - lby)
+        case _:
+            return Unknown()
 
 
 def bounds_violated(
@@ -129,35 +177,47 @@ def bounds_violated(
     # If there are no monotone variables there is nothing to check
     if not (monotone_increasing or monotone_decreasing):
         return False
+    initial_assignment: dict[str, Bound] = dict(initial.fixed)
 
-    # Construct an initial assignment consisting of fixed variables and
-    # poisoned free variables.
-    #
-    # Any computation involving a poisoned variable is poisoned.
-    initial_assignment: dict[str, int | FreePoison] = dict(initial.fixed)
-    poison = FreePoison()
     for free in initial.free:
-        initial_assignment[free] = poison
+        value: Bound
+        match free in monotone_increasing, free in monotone_decreasing:
+            case True, True:
+                value = 0
+            case True, False:
+                value = AtMost(0)
+            case False, True:
+                value = AtLeast(0)
+            case False, False:
+                value = Unknown()
+            case _:
+                raise ValueError(
+                    "Programmer error; exhaustive case analysis not exhaustive"
+                )
+
+        initial_assignment[free] = value
 
     assignment, _ = partial_evaluate(path, initial_assignment)  # type: ignore
 
+    # Increasing variables must be at most 0
     for var in monotone_increasing:
-        val = assignment[var]
+        match assignment[var]:
+            case int(x):
+                if x > 0:
+                    return True
+            case AtLeast(lb=lb):
+                if lb > 0:
+                    return True
 
-        if isinstance(val, FreePoison):
-            continue
-        else:
-            if val > 0:
-                return True
-
+    # Decreasing variables must be at least 0
     for var in monotone_decreasing:
-        val = assignment[var]
-
-        if isinstance(val, FreePoison):
-            continue
-        else:
-            if val < 0:
-                return True
+        match assignment[var]:
+            case int(x):
+                if x < 0:
+                    return True
+            case AtMost(ub=ub):
+                if ub < 0:
+                    return True
 
     return False
 
