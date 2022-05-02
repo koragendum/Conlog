@@ -120,7 +120,7 @@ OPERATORS = ['+=', '-=', '++?']
 SYMBOLS   = [';', '[', ']', '=', '?', '--'] + OPERATORS
 
 ws_regex   = re.compile(r"[ \n\r]+")
-name_regex = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*'?")
+name_regex = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z0-9_]+)*'?")
 num_regex  = re.compile(r"[+-]?\d+("+re.escape(GRP_SEPR)+r"\d+)*")
 char_regex = re.compile(r"'.")
 
