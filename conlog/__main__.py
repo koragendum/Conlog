@@ -163,12 +163,13 @@ while True:
     if len(seq) < 3 and seq[0].kind == 'name' and seq[0].value == 'limit':
         if len(seq) == 1:
             print(f"limit is \x1B[93m{limit}\x1B[39m")
+        elif seq[1].kind == 'name' and seq[1].value in ('inf', 'infinity'):
+            limit = float('inf')
+        elif seq[1].kind != 'numeric':
+            log_lines = stream.log.split('\n')
+            FrontendError("limit must be numeric", seq[1]).show(log_lines)
         else:
-            if seq[1].kind != 'numeric':
-                log_lines = stream.log.split('\n')
-                FrontendError("limit must be numeric", seq[1]).show(log_lines)
-            else:
-                limit = seq[1].value
+            limit = seq[1].value
         continue
 
     if len(seq) < 3 and seq[0].value in ('solve', 'go'):
