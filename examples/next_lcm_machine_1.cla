@@ -1,6 +1,4 @@
 
-    [comment__computes_x_the_next_lcm_of_all_the_numbers=0]
-
 
     (Start)---+
               |
@@ -48,5 +46,3 @@
     [neg_x=0]
     [da=1]
     [db=0]
-
-

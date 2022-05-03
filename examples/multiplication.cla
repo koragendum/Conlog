@@ -1,5 +1,7 @@
 
-    [comment__computes_z_equals_x_times_y=0]
+    computes z = x * y
+
+    x must be 8 but y can vary
 
     (Start)--------+--(da+=1)--(db++?da)--(da-=1)----+----(x-=8)--(da-=1)-(End)
                    |                                 |
