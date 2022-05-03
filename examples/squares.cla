@@ -6,3 +6,7 @@
                     #                      #
                     #                      #
                     ####(y-=z)####(x-=1)####
+
+demonstrates the need for diodes
+
+first solution found by solver happens to be correct, but `solve all` returns invalid solutions

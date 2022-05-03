@@ -1,5 +1,5 @@
 
-    [comment__computes_x_the_next_lcm_of_all_the_numbers=0]
+    computes x the next lcm of all the numbers
 
 
     (Start)---+
@@ -45,5 +45,3 @@
     [neg_x=0]
     [da=1]
     [db=0]
-
-
