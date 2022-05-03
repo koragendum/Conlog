@@ -153,7 +153,7 @@ while True:
         if len(seq) == 1:
             print(f"strategy is \x1B[93m{strategy}\x1B[39m")
         else:
-            if seq[1].kind != 'name' or seq[1].value not in ('g', 'p'):
+            if seq[1].kind != 'name' or seq[1].value not in ('c', 'g', 'p'):
                 log_lines = stream.log.split('\n')
                 FrontendError("unknown strategy", seq[1]).show(log_lines)
             else:
@@ -257,7 +257,7 @@ while True:
 
     if is_command and seq[0].value == 'help':
         print("strategy            print the current strategy")
-        print("strategy c|g|p      set the strategy to c, g or p")
+        print("strategy c|g|p      set the strategy to c, g, or p")
         print("limit               print the current search limit")
         print("limit <num>         set the search limit to <num>")
         print("go|search|solve     solve the current graph")
