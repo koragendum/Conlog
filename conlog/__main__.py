@@ -3,8 +3,8 @@ from conlog.elegant   import interpret
 from conlog.evaluator import evaluate
 from conlog.frontends import convert_to_grid, GridError, FrontendError, make_grid_program, TokenStream, TextProgram
 from conlog.plot      import plot_graph
-# from conlog.solver    import solve_graph_bfs
-from conlog.solver_c  import solve_graph_bfs_c as solve_graph_bfs
+from conlog.solver    import solve_graph_bfs
+from conlog.solver_c  import solve_graph_bfs_c
 
 AUTO_SEMICOLON  = True
 
@@ -13,7 +13,7 @@ AUTO_SEMICOLON  = True
 
 parser = argparse.ArgumentParser()
 parser.add_argument('inp',        metavar='FILE',     nargs='?',           default=None,  help='conlog file to parse and execute')
-parser.add_argument('--strategy', metavar='STRATEGY', choices=('g', 'p'),  default='p',   help='strategy to use')
+parser.add_argument('--strategy', metavar='STRATEGY', choices=('c', 'g', 'p'),  default='p',   help='strategy to use')
 parser.add_argument('--limit',    metavar='N',        type=int,            default=None,  help='search limit')
 parser.add_argument('--interactive', '-i',            action='store_true', default=False, help='load graph then start interactive session')
 parser.add_argument('--plot',                         action='store_true', default=False, help='load graph then plot and exit')
@@ -75,6 +75,8 @@ if (filename := args.inp) is not None:
     else:
         graph = program.graph()
         try:
+            if args.strategy == 'c':
+                interpreter = solve_graph_bfs_c(graph, limit=limit)
             if args.strategy == 'g':
                 interpreter = solve_graph_bfs(graph, limit=limit)
             if args.strategy == 'p':
@@ -187,6 +189,8 @@ while True:
 
         graph = program.graph()
         try:
+            if strategy == 'c':
+                interpreter = solve_graph_bfs_c(graph, limit=limit)
             if strategy == 'g':
                 interpreter = solve_graph_bfs(graph, limit=limit)
             if strategy == 'p':
@@ -252,7 +256,7 @@ while True:
 
     if is_command and seq[0].value == 'help':
         print("strategy            print the current strategy")
-        print("strategy g|p        set the strategy to g or p")
+        print("strategy c|g|p      set the strategy to c, g or p")
         print("limit               print the current search limit")
         print("limit <num>         set the search limit to <num>")
         print("go|search|solve     solve the current graph")

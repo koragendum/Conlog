@@ -1,3 +1,5 @@
+# Solve the conlog grid using BFS --  C pseudopython
+
 from __future__ import annotations
 from enum import Enum, auto
 from dataclasses import dataclass
@@ -34,12 +36,9 @@ class arr_ptr:
         return self.offset != other.offset
 
 
-
-# Solve the grid BFS C pseudopython
-
 MAX_DEGREE = 16
 MAX_NUM_VALUES = 32
-MAX_QUEUE_LENGTH = 1000000 # 2**24 = 16777216
+MAX_QUEUE_LENGTH = 10000000 # 2**24 = 16777216
 
 
 uint8_t = int
@@ -263,8 +262,9 @@ def get_next_solution(
     while (search_queue_next_free < queue_end) and (iterations < limit) and (not found_solution):
         iterations += 1
 
-        if iterations == ((iterations >> 15) << 15):
-            print(iterations)
+        # # For debugging/profiling, bring back this printf in C:
+        # if iterations == ((iterations >> 15) << 15):
+        #     print(iterations)
 
         current_state ,= search_queue_next_to_pop
         search_queue_next_to_pop += 1
@@ -465,7 +465,6 @@ def solve_graph_bfs_c(graph: nx.Graph, limit = None):
 
         final_values = ans[1:num_values + 1]
         final_path = ans[num_values + 1:ans_len + num_values + 1]
-        print(ans)
 
         final_values = dict(zip(var_names, final_values))
 
