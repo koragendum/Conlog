@@ -1,4 +1,4 @@
-[x=5]                       [y=0]     [e=0]                          [xd2=0]                         [nmx=0]
+[x=3]                       [y=0]     [e=0]                          [xd2=0]                         [nmx=0]
 [d=0]                       save x    diode                          take x/2                        x mod 2 is nonnegative
 
 (init)----+----(intpr=x)----(y+=x)----(e-=1)----(d++?e)----(e+=1)----+----(x-=2)----(xd2+=1)----+----(nmx-=x)----(d++?nmx)----(nmx+=x)----+
