@@ -3,7 +3,8 @@ from conlog.elegant   import interpret
 from conlog.evaluator import evaluate
 from conlog.frontends import convert_to_grid, GridError, FrontendError, make_grid_program, TokenStream, TextProgram
 from conlog.plot      import plot_graph
-from conlog.solver    import solve_graph_bfs
+# from conlog.solver    import solve_graph_bfs
+from conlog.solver_c  import solve_graph_bfs_c as solve_graph_bfs
 
 AUTO_SEMICOLON  = True
 

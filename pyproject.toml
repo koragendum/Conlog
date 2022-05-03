@@ -15,7 +15,8 @@ conlog = "conlog:__main__"
 
 [tool.poetry.dependencies]
 python = ">=3.10,<3.11"
-networkx = "*"
+numpy = "<2"
+networkx = "<3"
 
 [tool.poetry.dev-dependencies]
 pytest = ">=5,<6"
