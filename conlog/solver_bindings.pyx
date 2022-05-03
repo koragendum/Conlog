@@ -50,7 +50,6 @@ cdef extern from "solver_c_fast.c":
 
 def solve_graph_bfs_c(graph, limit):
     # Some Python preprocessing
-    # print("In the C code!")
 
     initial_node = next(node for node in graph.nodes if isinstance(node.op, Initial))
     terminal_node = next(node for node in graph.nodes if isinstance(node.op, Terminal))
@@ -65,6 +64,7 @@ def solve_graph_bfs_c(graph, limit):
     fixed_values = list(fixed_vars.values())
 
     nodes = list(graph.nodes)
+    nodes = sorted(nodes, key=str)
 
     num_nodes = len(nodes)
     node_type_arr = [getattr(NodeTypePython, type(node.op).__name__).value for node in nodes]
@@ -88,14 +88,14 @@ def solve_graph_bfs_c(graph, limit):
 
     cdef void * the_workspace = NULL
 
-    fixed_values = np.ascontiguousarray(fixed_values)
+    fixed_values = np.ascontiguousarray(np.array(fixed_values, dtype=np.int64))
     node_type_arr = np.ascontiguousarray(np.array(node_type_arr, dtype=np.uint8))
-    node_lhs_arr = np.ascontiguousarray(node_lhs_arr)
+    node_lhs_arr = np.ascontiguousarray(np.array(node_lhs_arr, dtype=np.int64))
     node_rhs_is_constant_arr = np.ascontiguousarray(np.array(node_rhs_is_constant_arr, dtype=np.uint8))
-    node_rhs_arr = np.ascontiguousarray(node_rhs_arr)
+    node_rhs_arr = np.ascontiguousarray(np.array(node_rhs_arr, dtype=np.int64))
     adjacency_matrix = np.ascontiguousarray(np.array(adjacency_matrix, dtype=np.uint8))
-    lower_bounds = np.ascontiguousarray(lower_bounds)
-    upper_bounds = np.ascontiguousarray(upper_bounds)
+    lower_bounds = np.ascontiguousarray(np.array(lower_bounds, dtype=np.int64))
+    upper_bounds = np.ascontiguousarray(np.array(upper_bounds, dtype=np.int64))
 
     # Make memoryviews (mvs)
     cdef int64_t[::1] fixed_values_mv = fixed_values
@@ -131,15 +131,12 @@ def solve_graph_bfs_c(graph, limit):
         print ("Received NULL the_workspace from init")
         return
 
-
-    # ans : c.p_long
     cdef uint64_t * ans
 
     while True:
         ans = get_next_solution_lowlevel(the_workspace)  # TODO: Something with the weird array format
         ans_len = ans[0]
         if ans_len == -1:
-            print("Received [-1] ans")
             # free(ans)   # TODO free ans
             break
 
@@ -151,10 +148,6 @@ def solve_graph_bfs_c(graph, limit):
         for i in range(ans_len):
             final_path[i] = ans[1 + num_values + i]
 
-        # print(ans_len)
-        # print(final_values)
-        # print(final_path)
-
         final_values = dict(zip(var_names, final_values))
 
         # Turn answer into a proper solution
@@ -165,7 +158,6 @@ def solve_graph_bfs_c(graph, limit):
 
         # Free the malloced array
         # free(ans)   # TODO free ans
-        # del ans
 
         yield solution
 

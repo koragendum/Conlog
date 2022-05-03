@@ -1,6 +1,7 @@
 // Solve the conlog grid using BFS --  C
 
 #include <stdio.h>
+#include <stdlib.h>
 #include "solver_c_fast.h"
 
 
@@ -22,7 +23,7 @@ static void * init_search_workspace_lowlevel(
     int64_t * upper_bounds  // upper_bounds[num_values]
 )
 {
-    // printf("init_search_workspace_lowlevel called\n");
+    //  printf("init_search_workspace_lowlevel called\n");
 
     CSearchWorkspace * the_workspace = malloc(sizeof(CSearchWorkspace));
 
@@ -39,7 +40,7 @@ static void * init_search_workspace_lowlevel(
     }
 
     for (uint64_t i=0; i < num_nodes; i++) {
-        for (int j=0; j < num_nodes; j++) {
+        for (uint64_t j=0; j < num_nodes; j++) {
             if (adjacency_matrix[(i * num_nodes) + j]) {
                 node_arr[i].neighbor_arr[node_arr[i].num_neighbors] = &(node_arr[j]);
                 node_arr[i].num_neighbors ++;
@@ -156,15 +157,58 @@ static uint64_t * get_next_solution_lowlevel(
 
     uint8_t found_solution = 0;
     CSearchState answer_search_head;
-    while ((search_queue_next_free < queue_end) && (iterations < limit) && (!found_solution)) {
+    while ((search_queue_next_free < queue_end) && (search_queue_next_to_pop < search_queue_next_free) && (iterations < limit) && (!found_solution)) {
         iterations++;
+
+        CSearchState current_state = *search_queue_next_to_pop;
 
         // // For debugging/profiling
         // if (iterations == ((iterations >> 18) << 18)) {
+        //     printf("\n");
         //     printf("%lld\n", iterations);
+        //     printf("\n");
         // }
 
-        CSearchState current_state = *search_queue_next_to_pop;
+        // // Trace of search execution
+        // if (1) {  //(iterations == ((iterations >> 15) << 15)) {
+        //     switch (current_state.node->node_type) {
+        //         case Initial:
+        //             printf("Initial\n");  // (%d)", current_state.node->node_i);
+        //             break;
+        //         case Terminal:
+        //             printf("Terminal\n");  // (%d)", current_state.node->node_i);
+        //             break;
+        //         case Addition:
+        //             printf("Addition\n");  // (%d)", current_state.node->node_i);
+        //             break;
+        //         case IntegerPrint:
+        //             printf("IntegerPrint\n");  // (%d)", current_state.node->node_i);
+        //             break;
+        //         case UnicodePrint:
+        //             printf("UnicodePrint\n");  // (%d)", current_state.node->node_i);
+        //             break;
+        //         case Subtraction:
+        //             printf("Subtraction\n");  // (%d)", current_state.node->node_i);
+        //             break;
+        //         case ConditionalIncrement:
+        //             printf("ConditionalIncrement\n");  // (%d)", current_state.node->node_i);
+        //             break;
+        //         case ConditionalDecrement:
+        //             printf("ConditionalDecrement\n");  // (%d)", current_state.node->node_i);
+        //             break;
+        //         case NoneType:
+        //             printf("NoneType\n");  // (%d)", current_state.node->node_i);
+        //             break;
+        //     }
+        // }
+        // for (uint64_t i=0; i < num_fixed_values; i++) {
+        //     printf("%d ", current_state.values[i]);
+        // }
+        // printf("\n");
+        // for (uint64_t i=num_fixed_values; i < num_values; i++) {
+        //     printf("%d ", current_state.values[i]);
+        // }
+        // printf("\n");
 
         // Create new values for this state
 
@@ -172,32 +216,32 @@ static uint64_t * get_next_solution_lowlevel(
             new_values[i] = current_state.values[i];
         }
 
-        switch (current_state.node[0].node_type) {
+        switch (current_state.node->node_type) {
             case Addition:
             case Subtraction:
             case ConditionalIncrement:
             case ConditionalDecrement:
                 ;  // Required because next line is a statement
-                uint64_t rhs;
-                if (current_state.node[0].rhs_is_constant) {
-                    rhs = current_state.node[0].rhs;
+                int64_t rhs;
+                if (current_state.node->rhs_is_constant) {
+                    rhs = current_state.node->rhs;
                 } else {
-                    rhs = new_values[current_state.node[0].rhs];
+                    rhs = current_state.values[current_state.node->rhs];
                 }
 
                 int64_t rvalue = -1;  // reverse-search, so reverse the operation
 
-                switch (current_state.node[0].node_type) {
+                switch (current_state.node->node_type) {
                     case Subtraction:
                     case ConditionalDecrement:
                         rvalue *= -1;
                 }
-                switch (current_state.node[0].node_type) {
+                switch (current_state.node->node_type) {
                     case Addition:
                     case Subtraction:
                         rvalue *= rhs;
                 }
-                switch (current_state.node[0].node_type) {
+                switch (current_state.node->node_type) {
                     case ConditionalIncrement:
                     case ConditionalDecrement:
                         if (rhs <= 0) {
@@ -205,12 +249,12 @@ static uint64_t * get_next_solution_lowlevel(
                         }
                 }
 
-                new_values[current_state.node[0].lhs] += rvalue;
+                new_values[current_state.node->lhs] += rvalue;
         }
 
         uint8_t keep_going_from_here = 1;
 
-        if ((current_state.node[0].node_type == Terminal) && (current_state.last_node != NULL)) {
+        if ((current_state.node->node_type == Terminal) && (current_state.last_node != NULL)) {
             // Terminal nodes terminate this search path, unless it's the first node
             keep_going_from_here = 0;
         }
@@ -223,20 +267,20 @@ static uint64_t * get_next_solution_lowlevel(
             }
         }
 
-
         if (keep_going_from_here) {
             // Make all successor states (this is where the LOGIC happens!)
-            for (uint64_t i=0; i < current_state.node[0].num_neighbors; i++) {
-                CNode * neighbor_node = current_state.node[0].neighbor_arr[i];
+            for (uint64_t ii=0; ii < current_state.node->num_neighbors; ii++) {
+                CNode * neighbor_node = current_state.node->neighbor_arr[ii];
 
                 if (neighbor_node == current_state.last_node) {
+                    // printf("Neighbor!\n");
                     continue;  // No backtracking allowed
                 }
 
                 CSearchState next_search_state;
 
                 next_search_state.node = neighbor_node;
-                next_search_state.last_node = &(current_state.node[0]);
+                next_search_state.last_node = current_state.node;
                 for (uint64_t i=0; i < num_values; i++) {
                     next_search_state.values[i] = new_values[i];
                 }
@@ -247,14 +291,13 @@ static uint64_t * get_next_solution_lowlevel(
             }
         }
 
-        if (current_state.node[0].node_type == Initial) {
+        if (current_state.node->node_type == Initial) {
             uint8_t fixed_equal = 1;
             // printf("Checking..  ");
             for (uint64_t i=0; i<num_fixed_values; i++) {
-                // printf("%lld=?=%lld  ", current_state.values[i], fixed_values[i]);
+                // printf("%lld=?%lld  ", current_state.values[i], fixed_values[i]);
                 if (current_state.values[i] != fixed_values[i]) {
                     fixed_equal = 0;
-                    break;
                 }
             }
             // printf("\n");
@@ -271,8 +314,6 @@ static uint64_t * get_next_solution_lowlevel(
 
     if (found_solution) {
         // Traverse the `SearchState`s to find the length of the answer. Then malloc + copy node ids
-        // printf("Found solution! Returning...\n");
-
         CSearchState * current_search_head;
 
         uint64_t soln_len = 1;
@@ -284,8 +325,6 @@ static uint64_t * get_next_solution_lowlevel(
 
         ans = malloc(sizeof(int64_t) * (1 + num_values + soln_len));
 
-        // printf("Twixt 1 and 2\n");
-
         uint64_t offset = 0;
 
         ans[offset] = soln_len;
@@ -295,9 +334,6 @@ static uint64_t * get_next_solution_lowlevel(
             ans[offset] = answer_search_head.values[i];
             offset++;
         }
-
-        // printf("Twixt 2 and 3\n");
-
         current_search_head = &(answer_search_head);  // One more time through, now that we've malloc'd ans at the proper length
         ans[offset] = current_search_head->node->node_i;
         offset++;
@@ -308,6 +344,16 @@ static uint64_t * get_next_solution_lowlevel(
         }
 
     } else {
+        if (search_queue_next_free >= queue_end) {
+            printf("Search terminated: Out of queue space\n");
+        }
+        if (search_queue_next_to_pop >= search_queue_next_free) {
+            printf("Search terminated: Out of nodes to search\n");
+        }
+        if (iterations >= limit) {
+            // printf("Search terminated: Reached iteration limit\n"); // Not informative.
+        }
+
         // This special array will make it clear we failed.
         ans = malloc(sizeof(uint64_t));
         ans[0] = -1;

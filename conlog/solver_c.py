@@ -408,12 +408,15 @@ def solve_graph_bfs_c(graph: nx.Graph, limit = None):
     try:
         from conlog.solver_bindings import solve_graph_bfs_c as solve_graph_bfs_c_cython
 
+        print('Using C')
         # solve_graph_bfs_c_cython(graph, limit)
         yield from solve_graph_bfs_c_cython(graph, limit)
 
         return
     except Exception as e:
         print('Failed to import cython module (%s). Falling back to python' % repr(e))
+
+    print('Using Python C sim')
 
     # Some Python preprocessing
 
@@ -430,6 +433,7 @@ def solve_graph_bfs_c(graph: nx.Graph, limit = None):
     fixed_values = list(fixed.values())
 
     nodes = list(graph.nodes)
+    nodes = sorted(nodes, key=str)
 
     num_nodes = len(nodes)
     node_type_arr = [getattr(NodeType, type(node.op).__name__).value for node in nodes]
