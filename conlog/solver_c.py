@@ -408,15 +408,12 @@ def solve_graph_bfs_c(graph: nx.Graph, limit = None):
     try:
         from conlog.solver_bindings import solve_graph_bfs_c as solve_graph_bfs_c_cython
 
-        print('Using C')
         # solve_graph_bfs_c_cython(graph, limit)
         yield from solve_graph_bfs_c_cython(graph, limit)
 
         return
     except Exception as e:
         print('Failed to import cython module (%s). Falling back to python' % repr(e))
-
-    print('Using Python C sim')
 
     # Some Python preprocessing
 

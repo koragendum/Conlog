@@ -23,8 +23,6 @@ static void * init_search_workspace_lowlevel(
     int64_t * upper_bounds  // upper_bounds[num_values]
 )
 {
-    //  printf("init_search_workspace_lowlevel called\n");
-
     CSearchWorkspace * the_workspace = malloc(sizeof(CSearchWorkspace));
 
     // Make the node array
@@ -94,27 +92,6 @@ static void * init_search_workspace_lowlevel(
     the_workspace->lower_bounds = lower_bounds;
     the_workspace->upper_bounds = upper_bounds;
 
-
-
-
-    // // CSearchState search_queue[MAX_QUEUE_LENGTH];
-    // // CNode * node_arr;
-    // printf("search_queue: %lld\n", the_workspace->search_queue);
-    // printf("search_queue_next_free: %lld\n", the_workspace->search_queue_next_free);
-    // printf("search_queue_next_to_pop: %lld\n", the_workspace->search_queue_next_to_pop);
-    // printf("num_values: %lld\n", the_workspace->num_values);
-    // printf("num_free_values: %lld\n", the_workspace->num_free_values);
-    // printf("num_fixed_values: %lld\n", the_workspace->num_fixed_values);
-    // printf("fixed_values: %lld\n", the_workspace->fixed_values);
-    // // CNode * terminal_node;;
-    // printf("iterations: %lld\n", the_workspace->iterations);
-    // printf("limit: %lld\n", the_workspace->limit);
-    // printf("lower_bounds: %lld\n", the_workspace->lower_bounds);
-    // printf("upper_bounds: %lld\n", the_workspace->upper_bounds);
-
-
-
-
     return the_workspace;
 }
 
@@ -139,8 +116,6 @@ static uint64_t * get_next_solution_lowlevel(
 
     CSearchWorkspace * the_workspace = (CSearchWorkspace *) the_workspace_ptr;
 
-    // printf("get_next_solution_lowlevel called\n");
-
     CSearchState * queue_end = &(the_workspace->search_queue[MAX_QUEUE_LENGTH - MAX_DEGREE - 1]);
 
     uint64_t iterations = the_workspace->iterations;
@@ -164,51 +139,8 @@ static uint64_t * get_next_solution_lowlevel(
 
         // // For debugging/profiling
         // if (iterations == ((iterations >> 18) << 18)) {
-        //     printf("\n");
         //     printf("%lld\n", iterations);
-        //     printf("\n");
         // }
-
-        // // Trace of search execution
-        // if (1) {  //(iterations == ((iterations >> 15) << 15)) {
-        //     switch (current_state.node->node_type) {
-        //         case Initial:
-        //             printf("Initial\n");  // (%d)", current_state.node->node_i);
-        //             break;
-        //         case Terminal:
-        //             printf("Terminal\n");  // (%d)", current_state.node->node_i);
-        //             break;
-        //         case Addition:
-        //             printf("Addition\n");  // (%d)", current_state.node->node_i);
-        //             break;
-        //         case IntegerPrint:
-        //             printf("IntegerPrint\n");  // (%d)", current_state.node->node_i);
-        //             break;
-        //         case UnicodePrint:
-        //             printf("UnicodePrint\n");  // (%d)", current_state.node->node_i);
-        //             break;
-        //         case Subtraction:
-        //             printf("Subtraction\n");  // (%d)", current_state.node->node_i);
-        //             break;
-        //         case ConditionalIncrement:
-        //             printf("ConditionalIncrement\n");  // (%d)", current_state.node->node_i);
-        //             break;
-        //         case ConditionalDecrement:
-        //             printf("ConditionalDecrement\n");  // (%d)", current_state.node->node_i);
-        //             break;
-        //         case NoneType:
-        //             printf("NoneType\n");  // (%d)", current_state.node->node_i);
-        //             break;
-        //     }
-        // }
-        // for (uint64_t i=0; i < num_fixed_values; i++) {
-        //     printf("%d ", current_state.values[i]);
-        // }
-        // printf("\n");
-        // for (uint64_t i=num_fixed_values; i < num_values; i++) {
-        //     printf("%d ", current_state.values[i]);
-        // }
-        // printf("\n");
 
         // Create new values for this state
 
@@ -273,7 +205,6 @@ static uint64_t * get_next_solution_lowlevel(
                 CNode * neighbor_node = current_state.node->neighbor_arr[ii];
 
                 if (neighbor_node == current_state.last_node) {
-                    // printf("Neighbor!\n");
                     continue;  // No backtracking allowed
                 }
 
@@ -293,14 +224,11 @@ static uint64_t * get_next_solution_lowlevel(
 
         if (current_state.node->node_type == Initial) {
             uint8_t fixed_equal = 1;
-            // printf("Checking..  ");
             for (uint64_t i=0; i<num_fixed_values; i++) {
-                // printf("%lld=?%lld  ", current_state.values[i], fixed_values[i]);
                 if (current_state.values[i] != fixed_values[i]) {
                     fixed_equal = 0;
                 }
             }
-            // printf("\n");
             if (fixed_equal) {
                 found_solution = 1;
                 answer_search_head = current_state;
