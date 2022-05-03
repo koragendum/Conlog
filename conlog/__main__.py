@@ -13,7 +13,7 @@ AUTO_SEMICOLON  = True
 
 parser = argparse.ArgumentParser()
 parser.add_argument('inp',              metavar='FILE',     nargs='?',              default=None,  help='conlog file to parse and execute')
-parser.add_argument('-s', '--strategy', metavar='STRATEGY', choices=('c','g','p'),  default='p',   help='strategy to use')
+parser.add_argument('-s', '--strategy', metavar='STRATEGY', choices=('c','g','p'),  default='g',   help='strategy to use')
 parser.add_argument('-l', '--limit',    metavar='N',        type=int,               default=None,  help='search limit')
 parser.add_argument('-i', '--interactive',                  action='store_true',    default=False, help='load graph then start interactive session')
 parser.add_argument('-p', '--plot',                         action='store_true',    default=False, help='load graph then plot and exit')
