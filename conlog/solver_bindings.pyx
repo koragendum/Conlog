@@ -151,8 +151,6 @@ def solve_graph_bfs_c(graph, limit):
         final_values = dict(zip(var_names, final_values))
 
         # Turn answer into a proper solution
-        print([nodes[i] for i in final_path])
-        print(final_values)
         solution = evaluate([nodes[i] for i in final_path], final_values)
 
         if solution is None:
