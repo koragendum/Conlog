@@ -243,7 +243,7 @@ def interpret(g: nx.Graph, limit: int | None = None) -> Iterator[Solution]:
 
     monotone_inc, monotone_dec = compute_monotone_variables(g)
 
-    print(monotone_inc, monotone_dec)
+    # print(monotone_inc, monotone_dec)
 
     queue = deque()
     for edge in find_initial_edges(dg):
