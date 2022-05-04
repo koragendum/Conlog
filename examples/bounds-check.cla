@@ -1,0 +1,15 @@
+(initial)--+--------+---+--------+--+--+---(fin)
+           |        |   |        |  |  |
+           +-(x+=1)-+   +-(y-=1)-+  |  |
+[x=-1]                              |  |
+[y=1]                               |  |
+                                    |  |
++-----------------------------------+  +-------------+
+|                                                    |
++--(u+=1)--(v++?u)--(u-=1)--(u-=1)--(v++?u)--(u+=1)--+
+
+[v=0]
+
+
+There are 8 paths through this network, and a bounds-checking
+solver should find all 8 and halt.

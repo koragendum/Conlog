@@ -1,7 +1,7 @@
-import operator
+import logging
 from collections import deque
 from dataclasses import dataclass
-from typing import Callable, Iterator, cast
+from typing import Iterator, cast
 
 import networkx as nx
 
@@ -27,6 +27,8 @@ from conlog.monotonicity import (
     find_initial,
     find_initial_node,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def determine_monotone_variables(
@@ -103,20 +105,30 @@ class _BoundedMixin:
     def __rsub__(self, other):
         return sub_bounds(other, cast(Bound, self))
 
+    def __eq__(self, other):
+        return False
+
 
 @dataclass(frozen=True)
 class Unknown(_BoundedMixin):
-    pass
+    def __gt__(self, other):
+        return True
 
 
 @dataclass(frozen=True)
 class AtLeast(_BoundedMixin):
     lb: int
 
+    def __gt__(self, other):
+        return self.lb > other
+
 
 @dataclass(frozen=True)
 class AtMost(_BoundedMixin):
     ub: int
+
+    def __gt__(self, other):
+        return self.ub < 0
 
 
 Bound = int | AtMost | AtLeast | Unknown
@@ -230,6 +242,9 @@ def interpret(g: nx.Graph, limit: int | None = None) -> Iterator[Solution]:
     dg = elide_none_none(make_uturnless(g))
 
     monotone_inc, monotone_dec = compute_monotone_variables(g)
+
+    print(monotone_inc, monotone_dec)
+
     queue = deque()
     for edge in find_initial_edges(dg):
         queue.append([edge])
@@ -238,6 +253,8 @@ def interpret(g: nx.Graph, limit: int | None = None) -> Iterator[Solution]:
     while queue:
         history = queue.popleft()
         u, v = history[-1]
+
+        path = make_candidate_solution(history)
 
         check_bounds = False
         match v.op:
