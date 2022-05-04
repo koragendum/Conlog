@@ -412,7 +412,7 @@ def solve_graph_bfs_c(graph: nx.Graph, limit = None):
         yield from solve_graph_bfs_c_cython(graph, limit)
 
         return
-    except Exception as e:
+    except ImportError as e:
         print('Failed to import cython module (%s). Falling back to python' % repr(e))
 
     # Some Python preprocessing

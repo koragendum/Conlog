@@ -45,7 +45,7 @@ cdef extern from "solver_c_fast.c":
         int64_t * upper_bounds,
     )
 
-    uint64_t * get_next_solution_lowlevel(void * the_workspace_ptr)
+    int64_t * get_next_solution_lowlevel(void * the_workspace_ptr)
 
 
 def solve_graph_bfs_c(graph, limit):
@@ -131,7 +131,7 @@ def solve_graph_bfs_c(graph, limit):
         print ("Received NULL the_workspace from init")
         return
 
-    cdef uint64_t * ans
+    cdef int64_t * ans
 
     while True:
         ans = get_next_solution_lowlevel(the_workspace)  # TODO: Something with the weird array format
@@ -140,17 +140,19 @@ def solve_graph_bfs_c(graph, limit):
             # free(ans)   # TODO free ans
             break
 
-        final_values = np.zeros((num_values,), dtype=np.uint64)
+        final_values = np.zeros((num_values,), dtype=np.int64)
         for i in range(num_values):
             final_values[i] = ans[1 + i]
 
-        final_path = np.zeros((ans_len,), dtype=np.uint64)
+        final_path = np.zeros((ans_len,), dtype=np.int64)
         for i in range(ans_len):
             final_path[i] = ans[1 + num_values + i]
 
         final_values = dict(zip(var_names, final_values))
 
         # Turn answer into a proper solution
+        print([nodes[i] for i in final_path])
+        print(final_values)
         solution = evaluate([nodes[i] for i in final_path], final_values)
 
         if solution is None:

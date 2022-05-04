@@ -97,7 +97,7 @@ static void * init_search_workspace_lowlevel(
 
 
 
-static uint64_t * get_next_solution_lowlevel(
+static int64_t * get_next_solution_lowlevel(
     void * the_workspace_ptr  // Really it's a CSearchWorkspace * .. void* so I don't have to explain that to caller
 ) {
     /**
