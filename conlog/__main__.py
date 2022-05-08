@@ -16,6 +16,7 @@ parser.add_argument('inp',              metavar='FILE',     nargs='?',          
 parser.add_argument('-s', '--strategy', metavar='STRATEGY', choices=('c','g','p'),  default='g',   help='strategy to use')
 parser.add_argument('-l', '--limit',    metavar='N',        type=int,               default=None,  help='search limit')
 parser.add_argument('-i', '--interactive',                  action='store_true',    default=False, help='load graph then start interactive session')
+parser.add_argument('-a', '--all',      dest='find_all',    action='store_true',    default=False, help='find all solutions instead of just the first (ignored in interactive mode)')
 parser.add_argument('-p', '--plot',                         action='store_true',    default=False, help='load graph then plot and exit')
 args = parser.parse_args()
 
@@ -27,7 +28,7 @@ if (filename := args.inp) is not None:
     is_grid_file = any(filename.endswith(ext) for ext in ('.cla', '.clg'))
     is_text_file = any(filename.endswith(ext) for ext in ('.clt', '.cl'))
     if not (is_grid_file or is_text_file):
-        print('\x1B[93mwarning\x1B[39m: not a conlog file: %s' % grid_file_name)
+        print('\x1B[93mwarning\x1B[39m: not a conlog file: %s' % filename)
 
     with open(filename, 'r') as f:
         filetext = f.read()
@@ -90,25 +91,44 @@ if (filename := args.inp) is not None:
             print('\rinterrupted')
             exit(1)
 
-        for (name, value) in solution.assignment.items():
-            if program.variables[name] in ('free', None):
-                print(f"\x1B[95m{name}\x1B[39m = \x1B[95m{value}\x1B[39m")
-        last_emitted = None
-        for out in solution.stdout:
-            if isinstance(out, str):
-                if last_emitted is None or last_emitted == 'character':
-                    print(out, end='')
+        alternate = False
+        while True:
+            first = True
+            for (name, value) in solution.assignment.items():
+                if program.variables[name] in ('free', None):
+                    if alternate and not first:
+                        print('   ', end='')
+                    print(f"\x1B[95m{name}\x1B[39m = \x1B[95m{value}\x1B[39m")
+                    first = False
+            last_emitted = None
+            for out in solution.stdout:
+                if isinstance(out, str):
+                    if last_emitted is None or last_emitted == 'character':
+                        print(out, end='')
+                    else:
+                        print(' ' + out, end='')
+                    last_emitted = 'character'
                 else:
-                    print(' ' + out, end='')
-                last_emitted = 'character'
-            else:
-                if last_emitted is None:
-                    print(str(out), end='')
-                else:
-                    print(' ' + str(out), end='')
-                last_emitted = 'numeric'
-        if len(solution.stdout) > 0:
-            print()
+                    if last_emitted is None:
+                        print(str(out), end='')
+                    else:
+                        print(' ' + str(out), end='')
+                    last_emitted = 'numeric'
+            if len(solution.stdout) > 0:
+                print()
+
+            if not args.find_all:
+                exit(0)
+
+            alternate = True
+            try:
+                solution = next(interpreter)
+            except StopIteration:
+                break
+            except KeyboardInterrupt:
+                print('\rinterrupted')
+                break
+            print("\x1B[2mor\x1B[22m", end=' ')
 
         exit(0)
 
