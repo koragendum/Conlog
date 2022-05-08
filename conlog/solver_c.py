@@ -51,15 +51,15 @@ size_t = uint64_t
 
 
 class NodeType(Enum):   # enum NodeType
-    Initial = auto()
-    Terminal = auto()
-    Addition = auto()
-    IntegerPrint = auto()
-    UnicodePrint = auto()
-    Subtraction = auto()
-    ConditionalIncrement = auto()
-    ConditionalDecrement = auto()
-    NoneType = auto()
+    Initial = 1
+    Terminal = 2
+    Addition = 3
+    IntegerPrint = 4
+    UnicodePrint = 5
+    Subtraction = 6
+    ConditionalIncrement = 7
+    ConditionalDecrement = 8
+    NoneType = 9
 
 
 @dataclass
@@ -136,7 +136,7 @@ def _malloc_CSearchWorkspace():
 
 
 # public void * init_search_workspace()
-def init_search_workspace(
+def init_search_workspace_python(
     num_fixed_values: uint64_t,
     num_free_values: uint64_t,
     fixed_values: list[uint64_t],  # uint64_t *
@@ -147,7 +147,7 @@ def init_search_workspace(
     node_rhs_is_constant_arr: bool,  # Whether rhs is a constant or an index
     node_rhs_arr: uint64_t,  # Index/value of the rhs operand
 
-    adjacency_matrix: list[list[uint8_t]],  # uint8_t[num_nodes][num_nodes]
+    adjacency_matrix: list[uint8_t],  # uint8_t[num_nodes][num_nodes]
     limit: uint64_t,
     lower_bounds: list[uint64_t],  # lower_bounds[num_values]
     upper_bounds: list[uint64_t],  # upper_bounds[num_values]
@@ -169,7 +169,7 @@ def init_search_workspace(
         node_arr[i].num_neighbors = 0
     for i in range(num_nodes):
         for j in range(num_nodes):
-            if (adjacency_matrix[i][j]):
+            if (adjacency_matrix[(i * num_nodes) + j]):
                 # node_arr[i].neighbor_arr[node_arr[i].num_neighbors] = &(node_arr[j])
                 node_arr[i].neighbor_arr[node_arr[i].num_neighbors] = (node_arr[j],)
                 node_arr[i].num_neighbors += 1  # ++
@@ -181,7 +181,7 @@ def init_search_workspace(
     # Put the first node on the search queue; the terminal node
     found_it: uint8_t = 0
     for i in range(num_nodes):
-        if node_arr[i].node_type == NodeType.Terminal:
+        if node_arr[i].node_type == NodeType.Terminal.value:
             found_it = 1
             the_workspace.terminal_node = node_arr[i]
             the_workspace.terminal_node_i = i
@@ -223,7 +223,7 @@ def init_search_workspace(
     return the_workspace,  # the_workspace
 
 # public int64_t * get_next_solution(
-def get_next_solution(
+def get_next_solution_python(
     the_workspace: tuple[CSearchWorkspace], # void * the_workspace,  # Really it's a CSearchWorkspace * .. void* so I don't have to explain that to caller
 ) -> list[int]:
     # Doc: Returns an int64_t * ptr. It's an array of length at least 1, specced as follows:
@@ -275,7 +275,7 @@ def get_next_solution(
             new_values[i] = current_state.values[i]
 
         match current_state.node[0].node_type:
-            case NodeType.Addition | NodeType.Subtraction | NodeType.ConditionalIncrement | NodeType.ConditionalDecrement:
+            case NodeType.Addition.value | NodeType.Subtraction.value | NodeType.ConditionalIncrement.value | NodeType.ConditionalDecrement.value:
                 rhs: uint64_t
                 if current_state.node[0].rhs_is_constant:
                     rhs = current_state.node[0].rhs
@@ -285,13 +285,13 @@ def get_next_solution(
                 rvalue: int64_t = -1  # reverse-search, so reverse the operation
 
                 match current_state.node[0].node_type:
-                    case NodeType.Subtraction | NodeType.ConditionalDecrement:
+                    case NodeType.Subtraction.value | NodeType.ConditionalDecrement.value:
                         rvalue *= -1
                 match current_state.node[0].node_type:
-                    case NodeType.Addition | NodeType.Subtraction:
+                    case NodeType.Addition.value | NodeType.Subtraction.value:
                         rvalue *= rhs
                 match current_state.node[0].node_type:
-                    case NodeType.ConditionalIncrement | NodeType.ConditionalDecrement:
+                    case NodeType.ConditionalIncrement.value | NodeType.ConditionalDecrement.value:
                         if (rhs <= 0):
                             rvalue = 0  # Do nothing if condition not satisfied
 
@@ -302,7 +302,7 @@ def get_next_solution(
 
         keep_going_from_here = True
 
-        if (current_state.node[0].node_type == NodeType.Terminal) and (current_state.last_node != None):
+        if (current_state.node[0].node_type == NodeType.Terminal.value) and (current_state.last_node != None):
             # Terminal nodes terminate this search path, unless it's the first node
             keep_going_from_here = False
 
@@ -339,7 +339,7 @@ def get_next_solution(
 
 
 
-        if (current_state.node[0].node_type == NodeType.Initial):
+        if (current_state.node[0].node_type == NodeType.Initial.value):
             fixed_equal = True
             for i in range(num_fixed_values):
                 if (current_state.values[i] != fixed_values[i]):
@@ -405,6 +405,16 @@ def get_next_solution(
 
 
 def solve_graph_bfs_c(graph: nx.Graph, limit = None):
+    try:
+        from conlog.solver_bindings import solve_graph_bfs_c as solve_graph_bfs_c_cython
+
+        # solve_graph_bfs_c_cython(graph, limit)
+        yield from solve_graph_bfs_c_cython(graph, limit)
+
+        return
+    except ImportError as e:
+        print('Failed to import cython module (%s). Falling back to python' % repr(e))
+
     # Some Python preprocessing
 
     initial_node = next(node for node in graph.nodes if isinstance(node.op, Initial))
@@ -420,15 +430,16 @@ def solve_graph_bfs_c(graph: nx.Graph, limit = None):
     fixed_values = list(fixed.values())
 
     nodes = list(graph.nodes)
+    nodes = sorted(nodes, key=str)
 
     num_nodes = len(nodes)
-    node_type_arr = [getattr(NodeType, type(node.op).__name__) for node in nodes]
+    node_type_arr = [getattr(NodeType, type(node.op).__name__).value for node in nodes]
 
     node_lhs_arr = [var_names.index(node.op.lhs) if node.op and hasattr(node.op, 'lhs') else 0 for node in nodes]
     node_rhs_is_constant_arr = [int(isinstance(node.op.rhs, int)) if (node.op and hasattr(node.op, 'lhs')) else 0 for node in nodes]
     node_rhs_arr = [(node.op.rhs if isinstance(node.op.rhs, int) else var_names.index(node.op.rhs))  if (node.op and hasattr(node.op, 'lhs')) else 0 for node in nodes]
-    
-    adjacency_matrix = [[graph.has_edge(nodes[i], nodes[j]) for i in range(len(nodes))] for j in range(len(nodes))]
+
+    adjacency_matrix = [int(graph.has_edge(nodes[i], nodes[j])) for i in range(len(nodes)) for j in range(len(nodes))]
 
     # Get lowest signed int64:
     LOWEST, HIGHEST = -2**63, 2**63 - 1
@@ -441,7 +452,7 @@ def solve_graph_bfs_c(graph: nx.Graph, limit = None):
 
     assert var_names[0] == list(fixed)[0]
 
-    the_workspace = init_search_workspace(
+    the_workspace = init_search_workspace_python(
         num_fixed_values,
         num_free_values,
         fixed_values,
@@ -458,7 +469,7 @@ def solve_graph_bfs_c(graph: nx.Graph, limit = None):
 
     ans = None
     while True:
-        ans = get_next_solution(the_workspace)  # TODO: Something with the weird array format
+        ans = get_next_solution_python(the_workspace)  # TODO: Something with the weird array format
         ans_len = ans[0]
         if ans_len == -1:
             break
