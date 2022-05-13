@@ -23,6 +23,7 @@ static void * init_search_workspace_lowlevel(
     int64_t * upper_bounds  // upper_bounds[num_values]
 )
 {
+    uint64_t num_values = num_fixed_values + num_free_values;
     CSearchWorkspace * the_workspace = malloc(sizeof(CSearchWorkspace));
 
     // Make the node array
@@ -67,7 +68,8 @@ static void * init_search_workspace_lowlevel(
 
     first_search_state.node = the_workspace->terminal_node;
     first_search_state.last_node = NULL;
-    for (uint64_t i=0; i<MAX_NUM_VALUES; i++) {
+    first_search_state.values = malloc(sizeof(int64_t) * num_values);
+    for (uint64_t i=0; i<num_values; i++) {
         first_search_state.values[i] = 0;
     }
     first_search_state.parent_search_state = NULL;
@@ -128,7 +130,7 @@ static int64_t * get_next_solution_lowlevel(
     int64_t * lower_bounds = the_workspace->lower_bounds;
     int64_t * upper_bounds = the_workspace->upper_bounds;
 
-    int64_t new_values[MAX_NUM_VALUES];
+    int64_t new_values[num_values];
 
     uint8_t found_solution = 0;
     CSearchState answer_search_head;
@@ -212,6 +214,7 @@ static int64_t * get_next_solution_lowlevel(
 
                 next_search_state.node = neighbor_node;
                 next_search_state.last_node = current_state.node;
+                next_search_state.values = malloc(sizeof(int64_t) * num_values);
                 for (uint64_t i=0; i < num_values; i++) {
                     next_search_state.values[i] = new_values[i];
                 }
@@ -235,6 +238,9 @@ static int64_t * get_next_solution_lowlevel(
             }
         }
 
+        // Once we're done with a node, free its values
+        free(search_queue_next_to_pop->values);
+        search_queue_next_to_pop->values = NULL;
         search_queue_next_to_pop++;
     }
 
@@ -242,9 +248,8 @@ static int64_t * get_next_solution_lowlevel(
 
     if (found_solution) {
         // Traverse the `SearchState`s to find the length of the answer. Then malloc + copy node ids
-        CSearchState * current_search_head;
-
         uint64_t soln_len = 1;
+        CSearchState * current_search_head;
         current_search_head = &(answer_search_head);
         while (current_search_head->parent_search_state != NULL) {
             current_search_head = current_search_head->parent_search_state;
@@ -259,7 +264,7 @@ static int64_t * get_next_solution_lowlevel(
         offset++;
 
         for (uint64_t i=0; i<num_values; i++) {
-            ans[offset] = answer_search_head.values[i];
+            ans[offset] = new_values[i];
             offset++;
         }
         current_search_head = &(answer_search_head);  // One more time through, now that we've malloc'd ans at the proper length
