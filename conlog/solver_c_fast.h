@@ -3,7 +3,7 @@
 #include <stdint.h>
 
 #define MAX_DEGREE 16
-#define MAX_QUEUE_LENGTH 80000000
+#define MAX_QUEUE_LENGTH 110000000
 
 
 #define Initial 1
@@ -30,7 +30,6 @@ typedef struct CNode {
 
 typedef struct CSearchState {
     CNode * node;
-    CNode * last_node;
     int64_t * values;
     struct CSearchState * parent_search_state;
 } CSearchState;

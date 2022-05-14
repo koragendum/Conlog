@@ -67,7 +67,6 @@ static void * init_search_workspace_lowlevel(
     CSearchState first_search_state;
 
     first_search_state.node = the_workspace->terminal_node;
-    first_search_state.last_node = NULL;
     first_search_state.values = malloc(sizeof(int64_t) * num_values);
     for (uint64_t i=0; i<num_values; i++) {
         first_search_state.values[i] = 0;
@@ -188,7 +187,7 @@ static int64_t * get_next_solution_lowlevel(
 
         uint8_t keep_going_from_here = 1;
 
-        if ((current_state.node->node_type == Terminal) && (current_state.last_node != NULL)) {
+        if ((current_state.node->node_type == Terminal) && (current_state.parent_search_state != NULL)) {
             // Terminal nodes terminate this search path, unless it's the first node
             keep_going_from_here = 0;
         }
@@ -206,14 +205,13 @@ static int64_t * get_next_solution_lowlevel(
             for (uint64_t ii=0; ii < current_state.node->num_neighbors; ii++) {
                 CNode * neighbor_node = current_state.node->neighbor_arr[ii];
 
-                if (neighbor_node == current_state.last_node) {
+                if ((current_state.parent_search_state != NULL) && (neighbor_node == current_state.parent_search_state->node)) {
                     continue;  // No backtracking allowed
                 }
 
                 CSearchState next_search_state;
 
                 next_search_state.node = neighbor_node;
-                next_search_state.last_node = current_state.node;
                 next_search_state.values = malloc(sizeof(int64_t) * num_values);
                 for (uint64_t i=0; i < num_values; i++) {
                     next_search_state.values[i] = new_values[i];
