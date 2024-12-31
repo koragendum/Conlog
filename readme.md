@@ -8,6 +8,7 @@ Every Conlog program has three parts:
 - variables
 - initial values
 - an undirected graph of operations
+
 The undirected graph must contain one start node and one end node.
 
 The interpreter finds a path from the start node to the end node (which may
@@ -198,7 +199,7 @@ satisfiable
 c = 21
 ```
 
-With a bit _more_ work, we can even compute hailstone sequences_!_
+With a bit _more_ work, we can even compute hailstone sequences<i>!</i>
 ```
 [x=3]                       [y=0]     [e=0]                          [xd2=0]                         [nmx=0]
 [d=0]                       save x    diode                          take x/2                        x mod 2 is nonnegative
